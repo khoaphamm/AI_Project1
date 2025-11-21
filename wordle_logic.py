@@ -8,7 +8,7 @@ MISPLACED = 1  # Yellow
 EXACT = 2      # Green
 
 class WordleGame:
-    def __init__(self, allowed_words_path='allowed_words.txt', possible_words_path='possible_words.txt', secret_word=None):
+    def __init__(self, allowed_words_path='allowed_words.txt', possible_words_path='allowed_words.txt', secret_word=None):
         """
         Initialize the game state.
         :param allowed_words_path: Path to the file containing ALL valid guesses.
@@ -92,6 +92,19 @@ class WordleGame:
                     secret_counter[guess_list[i]] -= 1
         
         return tuple(feedback) # Return as tuple so it's hashable
+
+    def is_consistent(self, candidate_word, history):
+        """
+        Checks if a candidate word is consistent with all previous feedback.
+        Logic: If 'candidate_word' WAS the secret word, would it generate
+        the exact same feedback for all previous guesses?
+        """
+        for prev_guess, prev_feedback in history:
+            # We simulate: If secret is candidate, what do we get for prev_guess?
+            simulated_feedback = self.evaluate_guess(prev_guess, secret_word=candidate_word)
+            if simulated_feedback != prev_feedback:
+                return False
+        return True
 
     def make_guess(self, guess):
         """
