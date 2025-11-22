@@ -4,14 +4,25 @@ A Python implementation of Wordle with AI solvers using Trie data structure and 
 
 ## How to Run
 
+
 **Play the game yourself:**
 ```bash
-python game_console.py
+python -m game.game_console
 ```
 
 **Watch AI solve with BFS/DFS on Trie:**
+
+## Note
+Before running any AI algorithms, we need to check if the pattern matrix JSON file exists: data/wordle_matrix.js.
+If it has not existed, then run:
 ```bash
-python AIconsole.py
+python generate_matrix.py
+```
+
+Then, run the following command to let AI play:
+
+```bash
+python -m algorithms.AIconsole
 ```
 
 **See Trie structure demonstration:**

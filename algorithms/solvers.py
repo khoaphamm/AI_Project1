@@ -10,7 +10,7 @@ The search space is represented as a Trie where:
 """
 
 from collections import deque
-from trie_structure import WordleTrie
+from trie.trie_structure import WordleTrie
 
 class BaseSolver:
     def __init__(self, game):

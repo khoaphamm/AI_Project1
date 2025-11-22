@@ -1,7 +1,8 @@
 import os
 import time
-from wordle_logic import WordleGame, MISS, MISPLACED, EXACT
-from solvers import BFSSolver, DFSSolver, RecursiveDFSSolver
+from game.wordle_logic import WordleGame, MISS, MISPLACED, EXACT
+from algorithms.solvers import BFSSolver, DFSSolver, RecursiveDFSSolver
+
 
 # ANSI Colors
 COLOR_GREEN = '\033[92m'
@@ -10,9 +11,13 @@ COLOR_GRAY = '\033[90m'
 COLOR_CYAN = '\033[96m'
 RESET = '\033[0m'
 
-def print_colored_word(word, feedback):
+def print_colored_word(word, feedback_int):
+    """
+    Decodes the integer feedback back to a tuple for display.
+    """
+    feedback_tuple = WordleGame.decode_feedback(feedback_int)
     output = ""
-    for letter, code in zip(word, feedback):
+    for letter, code in zip(word, feedback_tuple):
         if code == EXACT:
             output += f"{COLOR_GREEN}{letter.upper()}{RESET} "
         elif code == MISPLACED:
@@ -29,8 +34,8 @@ def play_user_mode(game):
         if success:
             os.system('cls' if os.name == 'nt' else 'clear')
             print_header()
-            for prev_word, prev_feedback in game.attempts:
-                print_colored_word(prev_word, prev_feedback)
+            for prev_word, prev_feedback_int in game.attempts:
+                print_colored_word(prev_word, prev_feedback_int)
         else:
             print(f"{COLOR_YELLOW}Invalid input: {result}{RESET}")
 
@@ -43,7 +48,7 @@ def play_ai_mode(game, solver_class):
     while not game.game_over:
         time.sleep(1) # Add delay so we can watch it play
         
-        # AI picks a guess based on history
+        # AI picks a guess based on history (history now contains ints for feedback)
         guess = solver.pick_guess(game.attempts)
         print(f"AI guesses: {guess.upper()}")
         
@@ -52,8 +57,8 @@ def play_ai_mode(game, solver_class):
             # Render Board
             os.system('cls' if os.name == 'nt' else 'clear')
             print_header()
-            for prev_word, prev_feedback in game.attempts:
-                print_colored_word(prev_word, prev_feedback)
+            for prev_word, prev_feedback_int in game.attempts:
+                print_colored_word(prev_word, prev_feedback_int)
         else:
             print(f"AI Error: Tried invalid word {guess}")
             break

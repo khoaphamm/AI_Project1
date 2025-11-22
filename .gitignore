@@ -142,3 +142,7 @@ $RECYCLE.BIN/
 *.swp
 *.swo
 *~
+
+
+#data
+data/wordle_matrix.json

@@ -5,8 +5,8 @@ This script visualizes how BFS and DFS traverse the Trie structure
 to find valid Wordle words.
 """
 
-from trie_structure import WordleTrie
-from wordle_logic import WordleGame
+from trie.trie_structure import WordleTrie
+from game.wordle_logic import WordleGame
 
 def demonstrate_trie_structure():
     """Show how the Trie is structured."""

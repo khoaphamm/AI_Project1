@@ -1,5 +1,5 @@
 import os
-from wordle_logic import WordleGame, MISS, MISPLACED, EXACT
+from game.wordle_logic import WordleGame, MISS, MISPLACED, EXACT
 
 # ANSI Colors for terminal
 COLOR_GREEN = '\033[92m'
@@ -8,12 +8,14 @@ COLOR_GRAY = '\033[90m'
 COLOR_WHITE = '\033[97m'
 RESET = '\033[0m'
 
-def print_colored_word(word, feedback):
+def print_colored_word(word, feedback_int):
     """
     Prints the word colored based on feedback codes.
+    Decodes the integer feedback back to a tuple for display.
     """
+    feedback_tuple = WordleGame.decode_feedback(feedback_int)
     output = ""
-    for letter, code in zip(word, feedback):
+    for letter, code in zip(word, feedback_tuple):
         if code == EXACT:
             output += f"{COLOR_GREEN}{letter.upper()}{RESET} "
         elif code == MISPLACED:
@@ -44,7 +46,7 @@ def main():
         success, result = game.make_guess(guess)
         
         if success:
-            # 'result' is the feedback tuple (e.g., (0, 2, 1, 0, 0))
+            # 'result' is now the feedback INTEGER
             # Clear screen and reprint entire board for clean UI
             os.system('cls' if os.name == 'nt' else 'clear')
             print("=" * 40)
@@ -53,8 +55,8 @@ def main():
             print()
             
             # Print history
-            for prev_word, prev_feedback in game.attempts:
-                print_colored_word(prev_word, prev_feedback)
+            for prev_word, prev_feedback_int in game.attempts:
+                print_colored_word(prev_word, prev_feedback_int)
         else:
             # 'result' is an error string
             print(f"{COLOR_YELLOW}⚠ Invalid input: {result}{RESET}")
