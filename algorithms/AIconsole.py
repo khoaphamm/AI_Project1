@@ -1,7 +1,7 @@
 import os
 import time
 from game.wordle_logic import WordleGame, MISS, MISPLACED, EXACT
-from algorithms.solvers import BFSSolver, DFSSolver, RecursiveDFSSolver
+from algorithms.solvers import DFSSolver, HillClimbingSolver
 
 
 # ANSI Colors
@@ -92,11 +92,10 @@ def main():
     print_header()
     print("\nSelect Mode:")
     print("1. Play Yourself")
-    print("2. AI Solver - Breadth-First Search (BFS) on Trie")
-    print("3. AI Solver - Depth-First Search (DFS) on Trie")
-    print("4. AI Solver - Recursive DFS on Trie")
+    print("2. AI Solver - Depth-First Search (DFS) on Trie")
+    print("3. AI Solver - Hill Climbing on Trie")
     
-    choice = input(f"\n{COLOR_CYAN}Enter choice (1-4):{RESET} ").strip()
+    choice = input(f"\n{COLOR_CYAN}Enter choice (1-3):{RESET} ").strip()
     
     # You can force a secret word here for testing, e.g., secret_word="apple"
     game = WordleGame() 
@@ -104,11 +103,9 @@ def main():
     if choice == '1':
         play_user_mode(game)
     elif choice == '2':
-        play_ai_mode(game, BFSSolver)
-    elif choice == '3':
         play_ai_mode(game, DFSSolver)
-    elif choice == '4':
-        play_ai_mode(game, RecursiveDFSSolver)
+    elif choice == '3':
+        play_ai_mode(game, HillClimbingSolver)
     else:
         print("Invalid choice.")
 
