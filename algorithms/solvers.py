@@ -9,20 +9,44 @@ The search space is represented as a Trie where:
 - Goal = finding a word consistent with feedback history
 """
 
-from collections import deque
+from collections import deque, defaultdict
 from trie.trie_structure import WordleTrie
 
 class BaseSolver:
     def __init__(self, game):
         self.game = game
-        # Build the trie from allowed words
-        self.trie = WordleTrie(list(game.allowed_words))
-        print(f"Trie built with {self.trie.word_count} words")
-        print(f"Trie statistics: {self.trie.get_statistics()}")
+        # The solver's search space is the full set of allowed words.
+        # This set is pruned at each step based on feedback.
+        self.currently_consistent_words = set(game.allowed_words)
+        self.trie = None  # Trie will be built on the first guess
         
         # First guess heuristics
         self.first_guess = "crane"  # Common strong opener
         self.search_stats = []
+
+    def _update_trie(self, history):
+        """
+        Filters the list of consistent words based on history and rebuilds the Trie.
+        """
+        if not history:
+            # On the first turn, the trie contains all allowed words
+            self.trie = WordleTrie(list(self.currently_consistent_words))
+        else:
+            # Filter words based on the last guess and rebuild
+            last_guess, last_feedback = history[-1]
+            
+            # The solver checks consistency against its own (large) list of words
+            self.currently_consistent_words = {
+                word for word in self.currently_consistent_words
+                if self.game.evaluate_guess(last_guess, secret_word=word) == last_feedback
+            }
+            self.trie = WordleTrie(list(self.currently_consistent_words))
+
+        print(f"Trie updated. Valid words remaining: {len(self.currently_consistent_words)}")
+        if len(self.currently_consistent_words) <= 10:
+            print(f"Remaining words: {list(self.currently_consistent_words)}")
+        print(f"Trie statistics: {self.trie.get_statistics()}")
+
 
     def pick_guess(self, history):
         """
@@ -33,73 +57,21 @@ class BaseSolver:
         raise NotImplementedError
 
 
-class BFSSolver(BaseSolver):
-    """
-    Breadth-First Search Solver using Trie structure.
-    
-    Search Strategy:
-    1. Start at root (empty string)
-    2. Explore level by level: depth 1, 2, 3, 4, 5
-    3. At depth 5 (leaves), check if word is consistent with history
-    4. First consistent word found = GOAL reached
-    
-    Transition: Adding one letter at a time (traverse down trie)
-    """
-    
-    def pick_guess(self, history):
-        # First guess optimization
-        if not history:
-            return self.first_guess
-
-        # Define goal test: word must be consistent with all previous feedback
-        def is_goal(word):
-            return self.game.is_consistent(word, history)
-        
-        # Perform BFS on the trie
-        path, word, nodes_visited = self.trie.bfs_search(is_goal)
-        
-        # Track statistics
-        self.search_stats.append({
-            'method': 'BFS',
-            'nodes_visited': nodes_visited,
-            'word_found': word
-        })
-        
-        if word:
-            print(f"BFS found: {word} (visited {nodes_visited} nodes)")
-            return word
-        
-        # Fallback (should not happen)
-        return list(self.game.allowed_words)[0]
-
-
 class DFSSolver(BaseSolver):
     """
-    Depth-First Search Solver using Trie structure.
-    
-    Search Strategy:
-    1. Start at root (empty string)
-    2. Dive deep: explore one branch completely before backtracking
-    3. Go depth 0->1->2->3->4->5 on each path
-    4. At depth 5 (leaves), check if word is consistent with history
-    5. Backtrack if not goal, explore next branch
-    
-    Transition: Adding one letter at a time (traverse down trie)
+    Depth-First Search Solver using an incrementally pruned Trie structure.
     """
-    
     def pick_guess(self, history):
-        # First guess optimization
         if not history:
             return self.first_guess
 
-        # Define goal test: word must be consistent with all previous feedback
-        def is_goal(word):
-            return self.game.is_consistent(word, history)
+        self._update_trie(history)
         
-        # Perform DFS on the trie
+        def is_goal(word):
+            return True
+        
         path, word, nodes_visited = self.trie.dfs_search(is_goal)
         
-        # Track statistics
         self.search_stats.append({
             'method': 'DFS',
             'nodes_visited': nodes_visited,
@@ -107,42 +79,69 @@ class DFSSolver(BaseSolver):
         })
         
         if word:
-            print(f"DFS found: {word} (visited {nodes_visited} nodes)")
+            print(f"DFS found: {word} (visited {nodes_visited} nodes in pruned trie)")
             return word
         
-        # Fallback (should not happen)
-        return list(self.game.allowed_words)[0]
+        return list(self.currently_consistent_words)[0] if self.currently_consistent_words else "error"
 
+class HillClimbingSolver(BaseSolver):
+    """
+    Hill Climbing Solver using a character-position frequency heuristic.
+    The heuristic is fairly calculated only from the general allowed_words list.
+    """
+    def __init__(self, game):
+        super().__init__(game)
+        self.heuristic_matrix = self._calculate_heuristic()
 
-class RecursiveDFSSolver(BaseSolver):
-    """
-    Recursive Depth-First Search using Trie structure.
-    
-    Same as DFS but implemented recursively for educational purposes.
-    Shows the natural recursive structure of DFS on trees.
-    """
-    
+    def _calculate_heuristic(self):
+        """
+        Calculates the frequency of each character at each position based on
+        the full set of allowed guessable words.
+        :return: A list of dictionaries, where list index = position and
+                 the dict maps a character to its frequency at that position.
+        """
+        freq_matrix = [defaultdict(int) for _ in range(5)]
+        
+        # Heuristic is built from the general 'allowed_words' to be fair.
+        for word in self.game.allowed_words:
+            for i, char in enumerate(word):
+                freq_matrix[i][char] += 1
+        
+        print("Hill Climbing heuristic matrix calculated (from allowed_words).")
+        return freq_matrix
+
     def pick_guess(self, history):
-        # First guess optimization
         if not history:
             return self.first_guess
 
-        # Define goal test
-        def is_goal(word):
-            return self.game.is_consistent(word, history)
-        
-        # Perform recursive DFS
-        path, word, nodes_visited = self.trie.dfs_recursive_search(is_goal)
-        
-        # Track statistics
+        # Prune the word list and rebuild the Trie with currently valid words
+        self._update_trie(history)
+
+        current_node = self.trie.root
+        guess_word = ""
+        nodes_visited = 1
+
+        for i in range(5):
+            possible_next_chars = list(current_node.children.keys())
+            
+            if not possible_next_chars:
+                return list(self.currently_consistent_words)[0] if self.currently_consistent_words else "error"
+
+            # Greedily choose the best next character based on the heuristic
+            best_char = max(
+                possible_next_chars, 
+                key=lambda char: self.heuristic_matrix[i].get(char, 0)
+            )
+            
+            guess_word += best_char
+            current_node = current_node.children[best_char]
+            nodes_visited += 1
+
         self.search_stats.append({
-            'method': 'Recursive DFS',
+            'method': 'HillClimbing',
             'nodes_visited': nodes_visited,
-            'word_found': word
+            'word_found': guess_word
         })
         
-        if word:
-            print(f"Recursive DFS found: {word} (visited {nodes_visited} nodes)")
-            return word
-        
-        return list(self.game.allowed_words)[0]
+        print(f"Hill Climbing built word: {guess_word} (traversed {nodes_visited} nodes)")
+        return guess_word

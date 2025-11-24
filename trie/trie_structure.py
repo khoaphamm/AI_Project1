@@ -82,14 +82,6 @@ class WordleTrie:
         """Check if any word starts with this prefix."""
         return self._traverse(prefix) is not None
     
-    def _traverse(self, prefix):
-        """Traverse the trie following the prefix. Return the node or None."""
-        node = self.root
-        for char in prefix.lower():
-            if char not in node.children:
-                return None
-            node = node.children[char]
-        return node
     
     def get_all_words(self):
         """Get all complete 5-letter words in the trie."""
@@ -106,46 +98,8 @@ class WordleTrie:
         self._collect_words(node, words)
         return words
     
-    def _collect_words(self, node, words):
-        """Recursively collect all complete words from a subtree."""
-        if node.is_word:
-            words.append(node.word)
-        
-        for child in node.children.values():
-            self._collect_words(child, words)
-    
-    def bfs_search(self, goal_test_fn):
-        """
-        Breadth-First Search on the trie.
-        
-        Search process:
-        1. Start at root (empty string)
-        2. Explore all prefixes level by level
-        3. When reaching depth 5 (complete word), test if it reaches GOAL
-        4. Goal test: does this word satisfy our constraints?
-        
-        :param goal_test_fn: Function that takes a word and returns True if it's the goal
-        :return: (path, word) if found, else (None, None)
-        """
-        queue = deque([(self.root, [])])  # (node, path taken)
-        nodes_visited = 0
-        
-        while queue:
-            node, path = queue.popleft()
-            nodes_visited += 1
-            
-            # If we've reached a complete word (leaf node -> GOAL transition)
-            if node.is_word:
-                # Test if this word reaches the GOAL
-                if goal_test_fn(node.word):
-                    return path + [node.word], node.word, nodes_visited
-            
-            # Expand children (transitions = adding one letter)
-            for char, child in sorted(node.children.items()):
-                new_path = path + [child.char] if node.depth > 0 else [child.char]
-                queue.append((child, new_path))
-        
-        return None, None, nodes_visited
+
+    """ SEARCHING ALGORITHMS """
     
     def dfs_search(self, goal_test_fn):
         """
@@ -180,35 +134,9 @@ class WordleTrie:
         
         return None, None, nodes_visited
     
-    def dfs_recursive_search(self, goal_test_fn):
-        """
-        Recursive DFS on the trie.
-        
-        :param goal_test_fn: Function that takes a word and returns True if it's the goal
-        :return: (path, word) if found, else (None, None)
-        """
-        self.nodes_visited = 0
-        result = self._dfs_recursive(self.root, [], goal_test_fn)
-        return result if result else (None, None, self.nodes_visited)
-    
-    def _dfs_recursive(self, node, path, goal_test_fn):
-        """Recursive DFS helper."""
-        self.nodes_visited += 1
-        
-        # If complete word, check if it's the goal
-        if node.is_word:
-            if goal_test_fn(node.word):
-                return path + [node.word], node.word, self.nodes_visited
-        
-        # Recursively explore children
-        for char, child in sorted(node.children.items()):
-            new_path = path + [child.char] if node.depth > 0 else [child.char]
-            result = self._dfs_recursive(child, new_path, goal_test_fn)
-            if result:
-                return result
-        
-        return None
-    
+
+    """ STATISTICS AND VISUALIZATION """
+
     def get_statistics(self):
         """Get statistics about the trie structure."""
         stats = {
@@ -218,14 +146,7 @@ class WordleTrie:
             'leaf_nodes': len(self.leaf_nodes)
         }
         return stats
-    
-    def _count_nodes(self, node):
-        """Count total nodes in the trie."""
-        count = 1
-        for child in node.children.values():
-            count += self._count_nodes(child)
-        return count
-    
+
     def visualize_path(self, path):
         """
         Visualize a search path through the trie.
@@ -247,3 +168,29 @@ class WordleTrie:
                 visualization += f" -> GOAL('{step}')"
         
         return visualization
+
+    """   HELPERS  """
+    def _traverse(self, prefix):
+        """Traverse the trie following the prefix. Return the node or None."""
+        node = self.root
+        for char in prefix.lower():
+            if char not in node.children:
+                return None
+            node = node.children[char]
+        return node   
+    
+    def _count_nodes(self, node):
+        """Count total nodes in the trie."""
+        count = 1
+        for child in node.children.values():
+            count += self._count_nodes(child)
+        return count
+
+    def _collect_words(self, node, words):
+        """Recursively collect all complete words from a subtree."""
+        if node.is_word:
+            words.append(node.word)
+        
+        for child in node.children.values():
+            self._collect_words(child, words)
+

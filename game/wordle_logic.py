@@ -13,7 +13,7 @@ class WordleGame:
     def __init__(self, 
                  allowed_words_path=paths.ALLOWED_WORDS, 
                  possible_words_path=paths.POSSIBLE_WORDS, 
-                 matrix_path="data/wordle_matrix.json", 
+                 matrix_path=paths.MATRIX_PATH, 
                  secret_word=None):
         
         # --- 1. Setup Paths ---
