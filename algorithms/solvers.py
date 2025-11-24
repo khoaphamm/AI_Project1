@@ -62,15 +62,12 @@ class DFSSolver(BaseSolver):
     Depth-First Search Solver using an incrementally pruned Trie structure.
     """
     def pick_guess(self, history):
-        if not history:
-            return self.first_guess
+        # if not history:
+        #     return self.first_guess
 
         self._update_trie(history)
         
-        def is_goal(word):
-            return True
-        
-        path, word, nodes_visited = self.trie.dfs_search(is_goal)
+        path, word, nodes_visited = self.trie.dfs_search()
         
         self.search_stats.append({
             'method': 'DFS',

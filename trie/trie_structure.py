@@ -101,7 +101,7 @@ class WordleTrie:
 
     """ SEARCHING ALGORITHMS """
     
-    def dfs_search(self, goal_test_fn):
+    def dfs_search(self):
         """
         Depth-First Search on the trie.
         
@@ -111,7 +111,6 @@ class WordleTrie:
         3. When reaching depth 5 (complete word), test if it reaches GOAL
         4. Backtrack if not found
         
-        :param goal_test_fn: Function that takes a word and returns True if it's the goal
         :return: (path, word) if found, else (None, None)
         """
         stack = [(self.root, [])]  # (node, path taken)
@@ -123,9 +122,7 @@ class WordleTrie:
             
             # If we've reached a complete word (leaf node -> GOAL transition)
             if node.is_word:
-                # Test if this word reaches the GOAL
-                if goal_test_fn(node.word):
-                    return path + [node.word], node.word, nodes_visited
+                return path + [node.word], node.word, nodes_visited
             
             # Expand children in reverse order for DFS (so 'a' is processed last/deepest)
             for char, child in sorted(node.children.items(), reverse=True):
