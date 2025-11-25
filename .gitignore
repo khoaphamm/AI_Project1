@@ -146,4 +146,4 @@ $RECYCLE.BIN/
 
 #data
 data/wordle_matrix.json
-solver_comparisons.json
+solver_comparison.json

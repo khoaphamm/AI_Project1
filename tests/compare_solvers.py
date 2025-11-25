@@ -20,7 +20,7 @@ from algorithms.solvers import DFSSolver, HillClimbingSolver
 from data import paths
 
 
-def play_game(solver, secret_word, max_attempts=6, verbose=False, quiet=True):
+def play_game(solver, secret_word, max_attempts=20, verbose=False, quiet=True):
     """
     Play a single game with the given solver and secret word.
     Returns game statistics.
@@ -93,6 +93,7 @@ def run_solver_benchmark(solver_class, solver_name, secret_words, verbose=False,
     
     # Create game and solver once, reuse for all tests
     game = WordleGame()
+    game.max_attempts = 20  # Unlimited attempts for testing
     solver = solver_class(game)
     
     results = []

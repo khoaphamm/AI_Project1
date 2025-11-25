@@ -108,8 +108,8 @@ class HillClimbingSolver(BaseSolver):
         return freq_matrix
 
     def pick_guess(self, history):
-        if not history:
-            return self.first_guess
+        # if not history:
+        #     return self.first_guess
 
         # Prune the word list and rebuild the Trie with currently valid words
         self._update_trie(history)

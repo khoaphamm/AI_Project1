@@ -9,6 +9,9 @@ python tests/compare_solvers.py --limit 50
 # Full test (~2300 games)
 python tests/compare_solvers.py
 
+# Unlimited Wordle mode (no 6-guess limit)
+python tests/compare_solvers.py --limit 50 --unlimited
+
 # With verbose output
 python tests/compare_solvers.py --limit 10 --verbose
 ```
