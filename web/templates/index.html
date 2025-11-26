@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordle AI Visualizer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+    <header>
+        <div class="header-content">
+            <h1>🎮 WORDLE AI VISUALIZER</h1>
+            <div class="header-buttons">
+                <button class="btn" id="themeBtn" title="Toggle Theme">🎨 Theme</button>
+                <button class="btn" id="menuBtn">Menu</button>
+                <button class="btn" id="pauseBtn" disabled>Pause</button>
+                <button class="btn" id="nextBtn" disabled>Next Step</button>
+                <button class="btn" id="restartBtn" disabled>Restart</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- LEFT PANEL: Algorithm Info and Suggestions -->
+        <div class="left-panel">
+            <div class="panel" id="algorithmPanel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>🧠 Algorithm</h2>
+                    <div class="mode-toggle" id="modeToggle" style="display: none;">
+                        <button class="toggle-btn" id="hintModeBtn" data-mode="hint">💡 Hint</button>
+                        <button class="toggle-btn" id="autoModeBtn" data-mode="auto">🤖 Auto</button>
+                    </div>
+                </div>
+                <div class="algorithm-info">
+                    <div class="algo-display">
+                        <div class="algo-icon">🤖</div>
+                        <div class="algo-details">
+                            <div class="algo-name" id="algorithmName">No Algorithm Selected</div>
+                            <div class="algo-mode" id="algorithmMode">Click Menu to start</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" id="suggestionsPanel">
+                <h2>💡 Word Suggestions</h2>
+                <p style="text-align: center; color: var(--text-secondary); margin: 1rem 0; font-size: 0.9rem;">
+                    Click a word to play it
+                </p>
+                <div class="suggestions-list" id="suggestionsList">
+                    <p style="text-align: center; color: var(--text-secondary);">
+                        No suggestions available
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER PANEL: Game Board and Keyboard -->
+        <div class="center-panel">
+            <div class="panel">
+                <h2>🎯 Game Board</h2>
+                <div class="game-board" id="gameBoard">
+                <!-- 6 rows x 5 tiles -->
+                <div class="row">
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                </div>
+                <div class="row">
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                </div>
+                <div class="row">
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                </div>
+                <div class="row">
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                </div>
+                <div class="row">
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                </div>
+                <div class="row">
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                    <div class="tile"></div>
+                </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>⌨️ Keyboard</h2>
+                <div class="keyboard" id="keyboard">
+                    <div class="keyboard-row">
+                        <button class="key" data-key="Q">Q</button>
+                        <button class="key" data-key="W">W</button>
+                        <button class="key" data-key="E">E</button>
+                        <button class="key" data-key="R">R</button>
+                        <button class="key" data-key="T">T</button>
+                        <button class="key" data-key="Y">Y</button>
+                        <button class="key" data-key="U">U</button>
+                        <button class="key" data-key="I">I</button>
+                        <button class="key" data-key="O">O</button>
+                        <button class="key" data-key="P">P</button>
+                    </div>
+                    <div class="keyboard-row">
+                        <button class="key" data-key="A">A</button>
+                        <button class="key" data-key="S">S</button>
+                        <button class="key" data-key="D">D</button>
+                        <button class="key" data-key="F">F</button>
+                        <button class="key" data-key="G">G</button>
+                        <button class="key" data-key="H">H</button>
+                        <button class="key" data-key="J">J</button>
+                        <button class="key" data-key="K">K</button>
+                        <button class="key" data-key="L">L</button>
+                    </div>
+                    <div class="keyboard-row">
+                        <button class="key" data-key="Z">Z</button>
+                        <button class="key" data-key="X">X</button>
+                        <button class="key" data-key="C">C</button>
+                        <button class="key" data-key="V">V</button>
+                        <button class="key" data-key="B">B</button>
+                        <button class="key" data-key="N">N</button>
+                        <button class="key" data-key="M">M</button>
+                    </div>
+                    <div class="keyboard-row">
+                        <button class="key key-wide" data-key="ENTER">ENTER</button>
+                        <button class="key key-wide" data-key="BACK">⌫</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: Visualization and Statistics -->
+        <div class="right-panel">
+            <div class="panel">
+                <h2>📊 Statistics</h2>
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-label">Attempts</div>
+                        <div class="stat-value" id="attemptsCount">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Remaining Words</div>
+                        <div class="stat-value" id="remainingWords">12953</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Search Depth</div>
+                        <div class="stat-value" id="nodesVisited">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Current Solver</div>
+                        <div class="stat-value" id="currentSolver" style="font-size: 1rem;">None</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>🧠 Algorithm Visualization</h2>
+                <div class="viz-controls">
+                    <button class="viz-tab active" data-tab="tree">Progress Analysis</button>
+                    <button class="viz-tab" data-tab="entropy">Word Reduction</button>
+                    <button class="viz-tab" data-tab="search">Search Space</button>
+                </div>
+                <div class="viz-content">
+                    <canvas id="vizCanvas" width="600" height="300"></canvas>
+                    <canvas id="chartCanvas" width="600" height="300" style="display:none;"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Menu Modal -->
+    <div class="modal" id="menuModal">
+        <div class="modal-content">
+            <h2>Select Algorithm</h2>
+            <div class="mode-options">
+                <button class="mode-btn" data-solver="dfs">
+                    🔍 DFS Solver
+                </button>
+                <button class="mode-btn" data-solver="hillclimbing">
+                    ⛰️ Hill Climbing
+                </button>
+            </div>
+            <button class="btn" style="margin-top: 1.5rem; width: 100%;" id="closeModalBtn">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app_enhanced.js') }}"></script>
+</body>
+</html>

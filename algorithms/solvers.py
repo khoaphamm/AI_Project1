@@ -56,6 +56,15 @@ class BaseSolver:
         """
         raise NotImplementedError
 
+    def get_all_suggestions(self):
+        """
+        Get all currently consistent words as suggestions.
+        Returns a list of tuples (word, score).
+        """
+        # Return consistent words sorted alphabetically with neutral score
+        suggestions = sorted(list(self.currently_consistent_words))[:100]
+        return [(word, 0.0) for word in suggestions]
+
 
 class DFSSolver(BaseSolver):
     """
@@ -89,6 +98,24 @@ class HillClimbingSolver(BaseSolver):
     def __init__(self, game):
         super().__init__(game)
         self.heuristic_matrix = self._calculate_heuristic()
+
+    def get_all_suggestions(self):
+        """
+        Get all currently consistent words as suggestions with heuristic scores.
+        Returns a list of tuples (word, score) sorted by score descending.
+        """
+        if not self.currently_consistent_words:
+            return []
+        
+        # Calculate score for each word based on character frequency heuristic
+        word_scores = []
+        for word in self.currently_consistent_words:
+            score = sum(self.heuristic_matrix[i].get(char, 0) for i, char in enumerate(word))
+            word_scores.append((word, score))
+        
+        # Sort by score descending, limit to top 100
+        word_scores.sort(key=lambda x: x[1], reverse=True)
+        return word_scores[:100]
 
     def _calculate_heuristic(self):
         """
