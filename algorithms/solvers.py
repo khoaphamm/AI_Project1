@@ -145,3 +145,67 @@ class HillClimbingSolver(BaseSolver):
         
         print(f"Hill Climbing built word: {guess_word} (traversed {nodes_visited} nodes)")
         return guess_word
+
+class KnowledgeBasedHillClimbingSolver(BaseSolver):
+    """
+    Knowledge-Based Hill Climbing Solver.
+    
+    Difference from Standard Hill Climbing:
+    - Standard: Calculates heuristic ONCE based on the full dictionary (D_a).
+    - Knowledge-Based: Recalculates the heuristic at EACH step based only on 
+      the remaining possible words (S_t).
+      
+    This allows the greedy search to adapt its probability distribution 
+    to the specific subset of words remaining.
+    """
+    
+    def _calculate_dynamic_heuristic(self, words):
+        """
+        Calculates character frequency at each position for the provided
+        subset of words.
+        """
+        freq_matrix = [defaultdict(int) for _ in range(5)]
+        
+        for word in words:
+            for i, char in enumerate(word):
+                freq_matrix[i][char] += 1
+        
+        return freq_matrix
+
+    def pick_guess(self, history):
+        # 1. Prune the search space and rebuild Trie based on history
+        self._update_trie(history)
+
+        # 2. DYNAMIC HEURISTIC: Build matrix from only the remaining valid words
+        #    (This represents the "Knowledge" gained so far)
+        dynamic_matrix = self._calculate_dynamic_heuristic(self.currently_consistent_words)
+        
+        current_node = self.trie.root
+        guess_word = ""
+        nodes_visited = 1
+
+        # 3. Greedy Traversal
+        for i in range(5):
+            possible_next_chars = list(current_node.children.keys())
+            
+            if not possible_next_chars:
+                return list(self.currently_consistent_words)[0] if self.currently_consistent_words else "error"
+
+            # Choose best char based on the NEW dynamic matrix
+            best_char = max(
+                possible_next_chars, 
+                key=lambda char: dynamic_matrix[i].get(char, 0)
+            )
+            
+            guess_word += best_char
+            current_node = current_node.children[best_char]
+            nodes_visited += 1
+
+        self.search_stats.append({
+            'method': 'KnowledgeBasedHillClimbing',
+            'nodes_visited': nodes_visited,
+            'word_found': guess_word
+        })
+        
+        print(f"KB-Hill Climbing built word: {guess_word} (traversed {nodes_visited} nodes)")
+        return guess_word
