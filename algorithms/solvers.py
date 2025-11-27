@@ -12,9 +12,7 @@ The search space is represented as a Trie where:
 from collections import Counter, deque, defaultdict
 import math
 import numpy as np
-from concurrent.futures import ThreadPoolExecutor
 from trie.trie_structure import WordleTrie
-_NUMBA_AVAILABLE = False
 
 class BaseSolver:
     def __init__(self, game):
@@ -215,13 +213,6 @@ class EntropySolver(BaseSolver):
         best_entropy = -1.0
         best_word = None
 
-        # 2. Search Strategy
-        # To find the absolute best info, we should search ALL allowed words (13k).
-        # However, 13k words * 2k candidates = 26 million ops, which is slow in Python.
-        # Optimization: If we have many candidates (>100), we search ONLY within the 
-        # candidate list. This is a very strong heuristic used by many solvers.
-        # If we have few candidates (<100), we search the FULL allowed list to find 
-        # 'killer words' that eliminate options even if they can't be the answer.
         
         # Deterministic iteration order: sort the allowed words
         search_space = sorted(self.game.allowed_words)
@@ -254,3 +245,67 @@ class EntropySolver(BaseSolver):
  
 
         
+
+class KnowledgeBasedHillClimbingSolver(BaseSolver):
+    """
+    Knowledge-Based Hill Climbing Solver.
+    
+    Difference from Standard Hill Climbing:
+    - Standard: Calculates heuristic ONCE based on the full dictionary (D_a).
+    - Knowledge-Based: Recalculates the heuristic at EACH step based only on 
+      the remaining possible words (S_t).
+      
+    This allows the greedy search to adapt its probability distribution 
+    to the specific subset of words remaining.
+    """
+    
+    def _calculate_dynamic_heuristic(self, words):
+        """
+        Calculates character frequency at each position for the provided
+        subset of words.
+        """
+        freq_matrix = [defaultdict(int) for _ in range(5)]
+        
+        for word in words:
+            for i, char in enumerate(word):
+                freq_matrix[i][char] += 1
+        
+        return freq_matrix
+
+    def pick_guess(self, history):
+        # 1. Prune the search space and rebuild Trie based on history
+        self._update_trie(history)
+
+        # 2. DYNAMIC HEURISTIC: Build matrix from only the remaining valid words
+        #    (This represents the "Knowledge" gained so far)
+        dynamic_matrix = self._calculate_dynamic_heuristic(self.currently_consistent_words)
+        
+        current_node = self.trie.root
+        guess_word = ""
+        nodes_visited = 1
+
+        # 3. Greedy Traversal
+        for i in range(5):
+            possible_next_chars = list(current_node.children.keys())
+            
+            if not possible_next_chars:
+                return list(self.currently_consistent_words)[0] if self.currently_consistent_words else "error"
+
+            # Choose best char based on the NEW dynamic matrix
+            best_char = max(
+                possible_next_chars, 
+                key=lambda char: dynamic_matrix[i].get(char, 0)
+            )
+            
+            guess_word += best_char
+            current_node = current_node.children[best_char]
+            nodes_visited += 1
+
+        self.search_stats.append({
+            'method': 'KnowledgeBasedHillClimbing',
+            'nodes_visited': nodes_visited,
+            'word_found': guess_word
+        })
+        
+        print(f"KB-Hill Climbing built word: {guess_word} (traversed {nodes_visited} nodes)")
+        return guess_word

@@ -1,3 +1,0 @@
-1) Remove BFSSolver + RecursiveDFSSolver
-2) Humanize the algorithm source code
-3) Vibing the remaining 3 algos
