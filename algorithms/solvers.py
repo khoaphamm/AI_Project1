@@ -9,8 +9,12 @@ The search space is represented as a Trie where:
 - Goal = finding a word consistent with feedback history
 """
 
-from collections import deque, defaultdict
+from collections import Counter, deque, defaultdict
+import math
+import numpy as np
+from concurrent.futures import ThreadPoolExecutor
 from trie.trie_structure import WordleTrie
+_NUMBA_AVAILABLE = False
 
 class BaseSolver:
     def __init__(self, game):
@@ -23,6 +27,21 @@ class BaseSolver:
         # First guess heuristics
         self.first_guess = "crane"  # Common strong opener
         self.search_stats = []
+    
+    def _update_currently_consistent_words(self, history):
+        """
+        Updates the set of currently consistent words based on the feedback history.
+        :param history: List of (guessed_word, feedback_pattern)
+        """
+        if not history:
+            self.currently_consistent_words = set(self.game.allowed_words)
+            return
+        
+        for guessed_word, feedback in history:
+            self.currently_consistent_words = {
+                word for word in self.currently_consistent_words
+                if self.game.evaluate_guess(guessed_word, secret_word=word) == feedback
+            }
 
     def _update_trie(self, history):
         """
@@ -142,3 +161,96 @@ class HillClimbingSolver(BaseSolver):
         
         print(f"Hill Climbing built word: {guess_word} (traversed {nodes_visited} nodes)")
         return guess_word
+    
+class EntropySolver(BaseSolver):
+    """
+    Entropy-Based Solver (3Blue1Brown Logic).
+    Strategy: Guess the word that provides the highest Expected Information (Entropy).
+    Formula: E[I] = Sum( -p(pattern) * log2(p(pattern)) )
+    """
+    def __init__(self, game):
+        super().__init__(game)
+        self.first_guess = "tares" # 3b1b favorite
+        self.already_used = set()
+
+    def calculate_entropy(self, guess_word, candidates):
+        """
+        Calculates E[I] for a given guess word against the list of possible secrets (candidates).
+        """
+        counts = Counter()
+        
+        # 1. Simulate the guess against all remaining candidates to get feedback patterns
+        for secret in candidates:
+            # evaluate_guess returns a tuple like (0, 2, 1, 0, 0)
+            # We use this tuple as the key in our Counter
+            pattern = self.game.evaluate_guess(guess_word, secret_word=secret)
+            counts[pattern] += 1
+            
+        entropy = 0.0
+        num_candidates = len(candidates)
+        
+        # 2. Calculate Shannon Entropy over the distribution of patterns
+        for count in counts.values():
+            if count > 0:
+                p = count / num_candidates
+                entropy += p * -math.log2(p)
+                
+        return entropy
+
+    def pick_guess(self, history):
+        if not history:
+            return self.first_guess
+        
+        # 1. Update our list of possible answers (candidates)
+        self._update_currently_consistent_words(history)
+        
+        candidates = list(self.currently_consistent_words)
+        if not candidates:
+            return "error"
+        
+        # If we have narrowed it down to 1 option, just guess it.
+        if len(candidates) == 1:
+            return candidates[0]
+
+        best_entropy = -1.0
+        best_word = None
+
+        # 2. Search Strategy
+        # To find the absolute best info, we should search ALL allowed words (13k).
+        # However, 13k words * 2k candidates = 26 million ops, which is slow in Python.
+        # Optimization: If we have many candidates (>100), we search ONLY within the 
+        # candidate list. This is a very strong heuristic used by many solvers.
+        # If we have few candidates (<100), we search the FULL allowed list to find 
+        # 'killer words' that eliminate options even if they can't be the answer.
+        
+        # Deterministic iteration order: sort the allowed words
+        search_space = sorted(self.game.allowed_words)
+
+        print(f"EntropySolver: Calculating entropy for {len(search_space)} words against {len(candidates)} candidates...")
+
+        for word in search_space:
+            if word in self.already_used:
+                continue
+            
+            entropy = self.calculate_entropy(word, candidates)
+            
+            if entropy > best_entropy:
+                best_entropy = entropy
+                best_word = word
+            
+            # Tie-breaker: If entropy is effectively equal, prefer words that are 
+            # actually possible answers (Greedy choice)
+            elif abs(entropy - best_entropy) < 1e-9:
+                if best_word not in self.currently_consistent_words and word in self.currently_consistent_words:
+                    best_word = word
+        
+        if best_word:
+            self.already_used.add(best_word)
+            print(f"EntropySolver: Best guess '{best_word}' with entropy {best_entropy:.4f} bits")
+            return best_word
+            
+        return candidates[0]
+
+ 
+
+        

@@ -16,7 +16,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from game.wordle_logic import WordleGame
-from algorithms.solvers import DFSSolver, HillClimbingSolver
+from algorithms.solvers import DFSSolver, HillClimbingSolver, EntropySolver
 from data import paths
 
 
@@ -44,6 +44,7 @@ def play_game(solver, secret_word, max_attempts=20, verbose=False, quiet=True):
     attempts = 0
     won = False
     total_nodes_visited = 0
+    consistency_sizes = []
     
     start_time = time.perf_counter()
     
@@ -59,6 +60,11 @@ def play_game(solver, secret_word, max_attempts=20, verbose=False, quiet=True):
             break
         
         history.append((guess, feedback))
+        # Record current consistent set size from solver (updated inside pick_guess)
+        try:
+            consistency_sizes.append(len(solver.currently_consistent_words))
+        except Exception:
+            consistency_sizes.append(None)
         
         if verbose:
             feedback_decoded = game.decode_feedback(feedback)
@@ -81,9 +87,10 @@ def play_game(solver, secret_word, max_attempts=20, verbose=False, quiet=True):
         'attempts': attempts,
         'nodes_visited': total_nodes_visited,
         'time_seconds': elapsed,
-        'guesses': [g for g, _ in history]
+        'guesses': [g for g, _ in history],
+        'consistency_sizes': consistency_sizes
     }
-def run_solver_benchmark(solver_class, solver_name, secret_words, verbose=False, quiet=True):
+def run_solver_benchmark(solver_class, solver_name, secret_words, verbose=False, quiet=True, solver_kwargs=None):
     """
     Run a solver against all secret words and collect statistics.
     """
@@ -102,6 +109,7 @@ def run_solver_benchmark(solver_class, solver_name, secret_words, verbose=False,
     total_nodes = 0
     total_time = 0
     attempts_distribution = defaultdict(int)
+    per_attempt_consistency = defaultdict(list)  # attempt_index -> list of sizes
     
     for idx, secret in enumerate(secret_words):
         if (idx + 1) % 100 == 0:
@@ -125,6 +133,10 @@ def run_solver_benchmark(solver_class, solver_name, secret_words, verbose=False,
         total_attempts += result['attempts']
         total_nodes += result['nodes_visited']
         total_time += result['time_seconds']
+        # Aggregate consistency sizes by attempt index
+        for i, sz in enumerate(result.get('consistency_sizes', []), start=1):
+            if sz is not None:
+                per_attempt_consistency[i].append(sz)
     
     num_games = len(secret_words)
     win_rate = (wins / num_games * 100) if num_games > 0 else 0
@@ -143,10 +155,13 @@ def run_solver_benchmark(solver_class, solver_name, secret_words, verbose=False,
         'avg_time_per_game': avg_time,
         'total_time': total_time,
         'attempts_distribution': dict(attempts_distribution),
-        'results': results
+        'results': results,
+        'avg_consistency_by_attempt': {k: (sum(v)/len(v) if v else 0) for k, v in per_attempt_consistency.items()}
     }
     
     return stats
+
+
 
 
 def print_summary(dfs_stats, hc_stats):
@@ -187,6 +202,7 @@ def main():
     parser.add_argument("--verbose", action="store_true", help="Print detailed game logs")
     parser.add_argument("--output", type=str, default="solver_comparison.json", help="Output JSON file for detailed results")
     parser.add_argument("--seed", type=int, default=None, help="Random seed for shuffling test order (optional)")
+    # Single-core only; no worker flags
     args = parser.parse_args()
     
     # Load all possible secret words
@@ -213,20 +229,49 @@ def main():
     quiet = not args.verbose
     dfs_stats = run_solver_benchmark(DFSSolver, "DFS", secret_words, verbose=args.verbose, quiet=quiet)
     hc_stats = run_solver_benchmark(HillClimbingSolver, "Hill Climbing", secret_words, verbose=args.verbose, quiet=quiet)
+    # Include Entropy solver (single-core only)
+    ent_stats = run_solver_benchmark(EntropySolver, "Entropy", secret_words, verbose=args.verbose, quiet=quiet)
     
     # Print summary
     print_summary(dfs_stats, hc_stats)
+    print("\nEntropy Solver Summary")
+    print("-"*60)
+    print(f"Total Games                    {ent_stats['total_games']}")
+    print(f"Wins                           {ent_stats['wins']}")
+    print(f"Win Rate (%)                   {ent_stats['win_rate']:.2f}")
+    print(f"Avg Attempts (when won)        {ent_stats['avg_attempts']:.2f}")
+    print(f"Avg Nodes Visited              {ent_stats['avg_nodes_visited']:.1f}")
+    print(f"Avg Time/Game (s)              {ent_stats['avg_time_per_game']:.4f}")
+    print(f"Total Time (s)                 {ent_stats['total_time']:.2f}")
+    # Print average consistency sizes by attempt index
+    if 'avg_consistency_by_attempt' in ent_stats:
+        print("\nConsistency Size (avg by attempt)")
+        for attempt_idx in sorted(ent_stats['avg_consistency_by_attempt'].keys()):
+            avg_sz = ent_stats['avg_consistency_by_attempt'][attempt_idx]
+            print(f"  Attempt {attempt_idx}: {avg_sz:.1f} candidates on average")
+    # No workers in single-thread mode
+    # Print attempts distribution for Entropy solver
+    print("\nAttempts Distribution (Entropy)")
+    for attempt in sorted([k for k in ent_stats['attempts_distribution'].keys() if k != 'failed']):
+        count = ent_stats['attempts_distribution'][attempt]
+        print(f"  {attempt} attempts: {count} games ({count/ent_stats['total_games']*100:.1f}%)")
+    if 'failed' in ent_stats['attempts_distribution']:
+        count = ent_stats['attempts_distribution']['failed']
+        print(f"  Failed: {count} games ({count/ent_stats['total_games']*100:.1f}%)")
     
     # Save detailed results
     output_data = {
         'dfs': dfs_stats,
         'hill_climbing': hc_stats,
+        'entropy': ent_stats,
         'comparison': {
             'total_games': len(secret_words),
             'dfs_win_rate': dfs_stats['win_rate'],
             'hc_win_rate': hc_stats['win_rate'],
-            'dfs_faster': dfs_stats['total_time'] < hc_stats['total_time'],
-            'speedup_factor': hc_stats['total_time'] / dfs_stats['total_time'] if dfs_stats['total_time'] > 0 else 0
+            'entropy_win_rate': ent_stats['win_rate'],
+            'dfs_faster_than_hc': dfs_stats['total_time'] < hc_stats['total_time'],
+            'hc_faster_than_entropy': hc_stats['total_time'] < ent_stats['total_time'],
+            'dfs_faster_than_entropy': dfs_stats['total_time'] < ent_stats['total_time']
         }
     }
     
