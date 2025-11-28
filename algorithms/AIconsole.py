@@ -1,7 +1,7 @@
 import os
 import time
 from game.wordle_logic import WordleGame, MISS, MISPLACED, EXACT
-from algorithms.solvers import DFSSolver, HillClimbingSolver
+from algorithms.solvers import DFSSolver, HillClimbingSolver, KnowledgeBasedHillClimbingSolver, EntropySolver
 
 
 # ANSI Colors
@@ -94,6 +94,7 @@ def main():
     print("1. Play Yourself")
     print("2. AI Solver - Depth-First Search (DFS) on Trie")
     print("3. AI Solver - Hill Climbing on Trie")
+    print("4. AI Solver - Knowledge Based Hill Climbing on Trie")
     
     choice = input(f"\n{COLOR_CYAN}Enter choice (1-3):{RESET} ").strip()
     
@@ -106,6 +107,10 @@ def main():
         play_ai_mode(game, DFSSolver)
     elif choice == '3':
         play_ai_mode(game, HillClimbingSolver)
+    elif choice == '4':
+        play_ai_mode(game, KnowledgeBasedHillClimbingSolver)
+    elif choice == '5':
+        play_ai_mode(game, EntropySolver) 
     else:
         print("Invalid choice.")
 
