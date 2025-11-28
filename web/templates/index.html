@@ -15,7 +15,6 @@
             <h1>🎮 WORDLE AI VISUALIZER</h1>
             <div class="header-buttons">
                 <button class="btn" id="themeBtn" title="Toggle Theme">🎨 Theme</button>
-                <button class="btn" id="menuBtn">Menu</button>
                 <button class="btn" id="pauseBtn" disabled>Pause</button>
                 <button class="btn" id="nextBtn" disabled>Next Step</button>
                 <button class="btn" id="restartBtn" disabled>Restart</button>
@@ -28,25 +27,57 @@
         <div class="left-panel">
             <div class="panel" id="algorithmPanel">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h2>🧠 Algorithm</h2>
+                    <h2>Algorithm</h2>
                     <div class="mode-toggle" id="modeToggle" style="display: none;">
                         <button class="toggle-btn" id="hintModeBtn" data-mode="hint">💡 Hint</button>
                         <button class="toggle-btn" id="autoModeBtn" data-mode="auto">🤖 Auto</button>
                     </div>
                 </div>
-                <div class="algorithm-info">
-                    <div class="algo-display">
+                <div class="algorithm-info" id="algorithmSelector">
+                    <div class="algo-display clickable">
                         <div class="algo-icon">🤖</div>
                         <div class="algo-details">
                             <div class="algo-name" id="algorithmName">No Algorithm Selected</div>
-                            <div class="algo-mode" id="algorithmMode">Click Menu to start</div>
+                            <div class="algo-mode" id="algorithmMode">Click to select algorithm</div>
+                        </div>
+                        <div class="dropdown-arrow">▼</div>
+                    </div>
+                    <div class="algorithm-dropdown" id="algorithmDropdown" style="display: none;">
+                        <div class="dropdown-item" data-solver="dfs">DFS Solver</div>
+                        <div class="dropdown-item" data-solver="entropy">Entropy Solver</div>
+                        <div class="dropdown-item" data-solver="kbhillclimbing">KB Hill Climbing</div>
+                        <div class="dropdown-item" data-solver="progressive">Progressive Entropy</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Algorithm Loading Component -->
+            <div id="algorithmLoading" class="algorithm-loading-panel" style="display: none;">
+                <div class="loading-content">
+                    <div class="spinner-container">
+                        <div class="loading-spinner">
+                            <div class="spinner"></div>
+                        </div>
+                        <div class="loading-info">
+                            <h3>AI Thinking...</h3>
+                            <div class="loading-message" id="loadingMessage">Analyzing possibilities...</div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <div id="algorithmResult" class="algorithm-result-panel" style="display: none;">
+                <div class="result-content">
+                    <div class="result-icon" id="resultIcon">🎉</div>
+                    <div class="result-info">
+                        <div class="result-message" id="resultMessage">Solved!</div>
+                        <div class="result-details" id="resultDetails">Algorithm completed successfully</div>
+                    </div>
+                </div>
+            </div>
+
             <div class="panel" id="suggestionsPanel">
-                <h2>💡 Word Suggestions</h2>
+                <h2>Word Suggestions</h2>
                 <p style="text-align: center; color: var(--text-secondary); margin: 1rem 0; font-size: 0.9rem;">
                     Click a word to play it
                 </p>
@@ -61,7 +92,7 @@
         <!-- CENTER PANEL: Game Board and Keyboard -->
         <div class="center-panel">
             <div class="panel">
-                <h2>🎯 Game Board</h2>
+                <h2>Game Board</h2>
                 <div class="game-board" id="gameBoard">
                 <!-- 6 rows x 5 tiles -->
                 <div class="row">
@@ -110,7 +141,7 @@
             </div>
 
             <div class="panel">
-                <h2>⌨️ Keyboard</h2>
+                <h2>Keyboard</h2>
                 <div class="keyboard" id="keyboard">
                     <div class="keyboard-row">
                         <button class="key" data-key="Q">Q</button>
@@ -155,7 +186,7 @@
         <!-- RIGHT PANEL: Visualization and Statistics -->
         <div class="right-panel">
             <div class="panel">
-                <h2>📊 Statistics</h2>
+                <h2>Statistics</h2>
                 <div class="stats">
                     <div class="stat-item">
                         <div class="stat-label">Attempts</div>
@@ -177,7 +208,7 @@
             </div>
 
             <div class="panel">
-                <h2>🧠 Algorithm Visualization</h2>
+                <h2>Algorithm Visualization</h2>
                 <div class="viz-controls">
                     <button class="viz-tab active" data-tab="tree">Progress Analysis</button>
                     <button class="viz-tab" data-tab="entropy">Word Reduction</button>
@@ -191,23 +222,26 @@
         </div>
     </main>
 
-    <!-- Menu Modal -->
-    <div class="modal" id="menuModal">
-        <div class="modal-content">
-            <h2>Select Algorithm</h2>
-            <div class="mode-options">
-                <button class="mode-btn" data-solver="dfs">
-                    🔍 DFS Solver
-                </button>
-                <button class="mode-btn" data-solver="hillclimbing">
-                    ⛰️ Hill Climbing
-                </button>
+    <!-- Algorithm Loading Indicator -->
+    <div id="algorithmLoading" class="algorithm-loading" style="display: none;">
+        <div class="thinking-animation">
+            <div class="brain-icon">🧠</div>
+            <div class="dots-container">
+                <span class="dot">.</span>
+                <span class="dot">.</span>
+                <span class="dot">.</span>
             </div>
-            <button class="btn" style="margin-top: 1.5rem; width: 100%;" id="closeModalBtn">
-                Cancel
-            </button>
+            <div class="loading-messages">
+                <p class="message active">Analyzing possibilities...</p>
+                <p class="message">Calculating entropy...</p>
+                <p class="message">Searching decision tree...</p>
+                <p class="message">Finding optimal move...</p>
+            </div>
         </div>
     </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
 
     <script src="{{ url_for('static', filename='js/app_enhanced.js') }}"></script>
 </body>

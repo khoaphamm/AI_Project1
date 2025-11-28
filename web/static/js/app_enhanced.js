@@ -26,18 +26,18 @@ let currentInput = '';
 const API_BASE = '';
 
 // DOM elements
-const menuBtn = document.getElementById('menuBtn');
 const pauseBtn = document.getElementById('pauseBtn');
 const nextBtn = document.getElementById('nextBtn');
 const restartBtn = document.getElementById('restartBtn');
 const themeBtn = document.getElementById('themeBtn');
-const menuModal = document.getElementById('menuModal');
-const closeModalBtn = document.getElementById('closeModalBtn');
+const algorithmSelector = document.getElementById('algorithmSelector');
+const algorithmDropdown = document.getElementById('algorithmDropdown');
 const gameBoard = document.getElementById('gameBoard');
 const keyboard = document.getElementById('keyboard');
 const suggestionsList = document.getElementById('suggestionsList');
 const logContainer = document.getElementById('logContainer');
 const toastContainer = document.getElementById('toastContainer');
+const algorithmLoading = document.getElementById('algorithmLoading');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -46,6 +46,156 @@ document.addEventListener('DOMContentLoaded', () => {
     addPhysicalKeyboardSupport();
     loadThemePreference();
 });
+
+// Algorithm Loading Functions
+let messageInterval = null;
+const loadingMessages = [
+    "Analyzing possibilities...",
+    "Calculating entropy...",
+    "Searching decision tree...",
+    "Finding optimal move...",
+    "Processing feedback...",
+    "Narrowing word list..."
+];
+
+function showLoading() {
+    if (algorithmLoading) {
+        // Clear any existing intervals first
+        if (messageInterval) {
+            clearInterval(messageInterval);
+            messageInterval = null;
+        }
+        
+        // Hide result component
+        hideResult();
+        
+        // Reset any previous Done state
+        resetLoading();
+        
+        algorithmLoading.style.display = 'block';
+        
+        // Start cycling through messages
+        const messageElement = document.getElementById('loadingMessage');
+        let currentIndex = 0;
+        
+        if (messageElement) {
+            messageElement.textContent = loadingMessages[currentIndex];
+        }
+        
+        messageInterval = setInterval(() => {
+            currentIndex = (currentIndex + 1) % loadingMessages.length;
+            if (messageElement) {
+                messageElement.textContent = loadingMessages[currentIndex];
+            }
+        }, 1500);
+        
+        console.log('Loading started with interval:', messageInterval); // Debug log
+    }
+}
+
+function hideLoading() {
+    if (algorithmLoading) {
+        algorithmLoading.style.display = 'none';
+        
+        // Clear message cycling
+        if (messageInterval) {
+            clearInterval(messageInterval);
+            messageInterval = null;
+        }
+        
+        // Reset to first message
+        const messageElement = document.getElementById('loadingMessage');
+        if (messageElement) {
+            messageElement.textContent = loadingMessages[0];
+        }
+    }
+}
+
+function showResult(message, details, type = 'success') {
+    // Hide loading component
+    hideLoading();
+    
+    // Show result component
+    const resultPanel = document.getElementById('algorithmResult');
+    const resultIcon = document.getElementById('resultIcon');
+    const resultMessage = document.getElementById('resultMessage');
+    const resultDetails = document.getElementById('resultDetails');
+    
+    if (resultPanel && resultIcon && resultMessage && resultDetails) {
+        // Set icon and message based on type
+        const icons = {
+            success: '🎉',
+            error: '❌',
+            warning: '⚠️',
+            stopped: '⏹️'
+        };
+        
+        const classes = {
+            success: 'result-success',
+            error: 'result-error', 
+            warning: 'result-warning',
+            stopped: 'result-success'
+        };
+        
+        resultIcon.textContent = icons[type] || icons.success;
+        resultMessage.textContent = message;
+        resultDetails.textContent = details;
+        
+        // Apply styling
+        resultMessage.className = `result-message ${classes[type]}`;
+        
+        // Show the result panel
+        resultPanel.style.display = 'block';
+        
+        console.log('Result shown:', message, details, type);
+    }
+}
+
+function hideResult() {
+    const resultPanel = document.getElementById('algorithmResult');
+    if (resultPanel) {
+        resultPanel.style.display = 'none';
+    }
+}
+
+function showPaused() {
+    // Hide result component
+    hideResult();
+    
+    // Show loading component with pause state
+    const resultPanel = document.getElementById('algorithmResult');
+    const resultIcon = document.getElementById('resultIcon');
+    const resultMessage = document.getElementById('resultMessage');
+    const resultDetails = document.getElementById('resultDetails');
+    
+    if (resultPanel && resultIcon && resultMessage && resultDetails) {
+        resultIcon.textContent = '⏸️';
+        resultMessage.textContent = 'Paused';
+        resultDetails.textContent = 'Game is paused - click Resume to continue';
+        
+        // Apply neutral styling
+        resultMessage.className = 'result-message result-success';
+        
+        // Show the result panel
+        resultPanel.style.display = 'block';
+    }
+}
+
+function resetLoading() {
+    if (algorithmLoading) {
+        const spinner = algorithmLoading.querySelector('.loading-spinner');
+        const messageElement = document.getElementById('loadingMessage');
+        
+        // Reset all elements to default state
+        if (spinner) spinner.style.display = 'block';
+        if (messageElement) {
+            messageElement.style.color = '';
+            messageElement.style.fontWeight = '';
+            messageElement.style.fontSize = '';
+            messageElement.textContent = loadingMessages[0];
+        }
+    }
+}
 
 // Toast Notification System
 function showToast(message, type = 'info') {
@@ -77,12 +227,33 @@ function showToast(message, type = 'info') {
 }
 
 function setupEventListeners() {
-    menuBtn.addEventListener('click', () => showModal());
-    closeModalBtn.addEventListener('click', () => hideModal());
+    // Algorithm selector dropdown
+    algorithmSelector.addEventListener('click', (e) => {
+        if (e.target.closest('.algo-display')) {
+            toggleAlgorithmDropdown();
+        }
+    });
+    
+    // Dropdown item selection
+    algorithmDropdown.addEventListener('click', (e) => {
+        if (e.target.classList.contains('dropdown-item')) {
+            selectAlgorithm(e.target.dataset.solver);
+        }
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!algorithmSelector.contains(e.target)) {
+            closeAlgorithmDropdown();
+        }
+    });
+    
     pauseBtn.addEventListener('click', togglePause);
-    nextBtn.addEventListener('click', makeAIMove);
+    nextBtn.addEventListener('click', showNextStep);
     restartBtn.addEventListener('click', restartGame);
     themeBtn.addEventListener('click', toggleTheme);
+    
+    // Menu button removed - algorithm selection now via dropdown panel
 
     // Algorithm selection
     document.querySelectorAll('.mode-btn').forEach(btn => {
@@ -142,12 +313,7 @@ function setupEventListeners() {
         });
     });
 
-    // Close modal on outside click
-    menuModal.addEventListener('click', (e) => {
-        if (e.target === menuModal) {
-            hideModal();
-        }
-    });
+    // Modal removed - algorithm selection now via dropdown panel
 }
 
 // Add physical keyboard support
@@ -167,15 +333,73 @@ function addPhysicalKeyboardSupport() {
     });
 }
 
-function showModal() {
-    menuModal.classList.add('active');
+function toggleAlgorithmDropdown() {
+    const isOpen = algorithmDropdown.style.display === 'block';
+    if (isOpen) {
+        closeAlgorithmDropdown();
+    } else {
+        openAlgorithmDropdown();
+    }
 }
 
-function hideModal() {
-    menuModal.classList.remove('active');
+function openAlgorithmDropdown() {
+    algorithmDropdown.style.display = 'block';
+    document.querySelector('.algo-display').classList.add('active');
+}
+
+function closeAlgorithmDropdown() {
+    algorithmDropdown.style.display = 'none';
+    document.querySelector('.algo-display').classList.remove('active');
+}
+
+function selectAlgorithm(solverType) {
+    closeAlgorithmDropdown();
+    
+    // Hide any existing loading or result components
+    hideLoading();
+    hideResult();
+    
+    // Reset pause button state
+    pauseBtn.classList.remove('active');
+    
+    // Update algorithm display
+    const algorithmName = document.getElementById('algorithmName');
+    const algorithmMode = document.getElementById('algorithmMode');
+    
+    const solverNames = {
+        'dfs': 'DFS Solver',
+        'entropy': 'Entropy Solver', 
+        'kbhillclimbing': 'KB Hill Climbing',
+        'progressive': 'Progressive Entropy'
+    };
+    
+    algorithmName.textContent = solverNames[solverType] || solverType;
+    algorithmMode.textContent = 'Ready to start';
+    
+    // Show mode toggle
+    const modeToggle = document.getElementById('modeToggle');
+    modeToggle.style.display = 'flex';
+    
+    showToast(`Selected ${solverNames[solverType]}`, 'success');
+    
+    // Start the game automatically
+    startGame(solverType, false); // Start in hint mode
 }
 
 async function startGame(solver, autoPlay) {
+    if (!solver) {
+        showToast('Please select an algorithm first', 'warning');
+        openAlgorithmDropdown();
+        return;
+    }
+    
+    // Hide all UI components when starting a new game
+    hideLoading();
+    hideResult();
+    
+    // Clear AI choice highlights
+    clearAIChoiceHighlight();
+    
     try {
         const response = await fetch(`${API_BASE}/api/start`, {
             method: 'POST',
@@ -227,6 +451,7 @@ async function startGame(solver, autoPlay) {
             }
 
             if (autoPlay) {
+                showLoading();
                 setTimeout(() => startAutoPlay(), 500);
             } else {
                 // Load suggestions for hint mode
@@ -246,6 +471,9 @@ async function startAutoPlay() {
 
     if (!gameState.gameOver && gameState.autoPlay && !gameState.isPaused) {
         setTimeout(() => startAutoPlay(), 1500);
+    } else if (!gameState.gameOver) {
+        // Show result when auto play is manually stopped
+        showResult('Stopped', 'Auto-play was manually stopped', 'stopped');
     }
 }
 
@@ -282,11 +510,80 @@ async function makeAIMove() {
             } else if (!gameState.autoPlay) {
                 await loadSuggestions();
             }
+        } else {
+            // Handle API error response
+            console.error('API returned error:', data.error || 'Unknown error');
+            showToast(data.error || 'Failed to make move', 'error');
+            // Show error result
+            if (gameState.autoPlay) {
+                showResult('Error', data.error || 'API request failed', 'error');
+            }
         }
     } catch (error) {
         console.error('Error making AI move:', error);
         showToast('Failed to make move', 'error');
+        // Show error result
+        if (gameState.autoPlay) {
+            showResult('Error', 'Network or server error occurred', 'error');
+        }
     }
+}
+
+async function showNextStep() {
+    if (gameState.gameOver || !gameState.gameStarted || gameState.autoPlay) {
+        if (gameState.autoPlay) {
+            showToast('Use Auto mode or switch to Hint mode', 'warning');
+        }
+        return;
+    }
+
+    try {
+        // Load/refresh suggestions first
+        await loadSuggestions();
+        
+        // Get the top suggestion (AI's best choice) and highlight it
+        const suggestionItems = document.querySelectorAll('.suggestion-item');
+        if (suggestionItems.length > 0) {
+            const topSuggestion = suggestionItems[0];
+            const aiChoice = topSuggestion.dataset.word;
+            
+            // Highlight the AI's choice
+            highlightAIChoice(aiChoice);
+            
+            showToast(`AI recommends: ${aiChoice.toUpperCase()}`, 'info');
+        } else {
+            showToast('No suggestions available', 'warning');
+        }
+    } catch (error) {
+        console.error('Error getting AI suggestion:', error);
+        showToast('Failed to get AI suggestion', 'error');
+    }
+}
+
+function highlightAIChoice(aiWord) {
+    // Find and highlight the AI's chosen word in suggestions
+    const suggestionItems = document.querySelectorAll('.suggestion-item');
+    
+    // Remove any existing highlights
+    suggestionItems.forEach(item => {
+        item.classList.remove('ai-choice');
+    });
+    
+    // Find and highlight the AI's choice
+    suggestionItems.forEach(item => {
+        const word = item.dataset.word;
+        if (word && word.toLowerCase() === aiWord.toLowerCase()) {
+            item.classList.add('ai-choice');
+            item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    });
+}
+
+function clearAIChoiceHighlight() {
+    const suggestionItems = document.querySelectorAll('.suggestion-item');
+    suggestionItems.forEach(item => {
+        item.classList.remove('ai-choice');
+    });
 }
 
 async function makePlayerGuess(word) {
@@ -431,6 +728,9 @@ function displaySuggestions(suggestions) {
         suggestionsList.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 1rem;">No suggestions available</p>';
         return;
     }
+    
+    // Clear any existing AI choice highlights
+    clearAIChoiceHighlight();
 
     suggestionsList.innerHTML = suggestions.slice(0, 10).map((sugg, idx) => {
         // Handle both tuple format [word, score] and object format {word, score}
@@ -538,10 +838,13 @@ function updateStats(data) {
 }
 
 function handleGameOver(won, secretWord) {
+    // Show result component for both auto and hint modes
     if (won) {
+        showResult('Solved!', `You found the word: ${secretWord.toUpperCase()} in ${gameState.attempts.length} attempts!`, 'success');
         showToast(`🎉 You won in ${gameState.attempts.length} attempts!`, 'success');
         celebrateWin();
     } else {
+        showResult('Game Over', `The word was: ${secretWord.toUpperCase()}`, 'error');
         showToast(`Game Over. The word was: ${secretWord.toUpperCase()}`, 'error');
     }
 
@@ -565,10 +868,14 @@ function togglePause() {
     pauseBtn.classList.toggle('active', gameState.isPaused);
 
     if (gameState.isPaused) {
+        // Show pause state
+        hideLoading();
+        showPaused();
         showToast('Game paused', 'info');
     } else {
         showToast('Game resumed', 'success');
         if (gameState.autoPlay) {
+            showLoading();
             startAutoPlay();
         }
     }
@@ -579,6 +886,17 @@ async function restartGame() {
         showToast('Please start a game first', 'warning');
         return;
     }
+    // Hide all UI components when restarting
+    hideLoading();
+    hideResult();
+    
+    // Reset pause button state
+    pauseBtn.classList.remove('active');
+    
+    // Clear AI choice highlights
+    clearAIChoiceHighlight();
+    
+    // Clear input and display
     currentInput = '';
     clearCurrentRowDisplay();
     showToast('Restarting game...', 'info');
@@ -612,6 +930,13 @@ function loadThemePreference() {
 }
 
 function toggleMode(autoPlay) {
+    // Hide loading and result when switching modes
+    hideLoading();
+    hideResult();
+    
+    // Reset pause button state
+    pauseBtn.classList.remove('active');
+    
     if (!gameState.gameStarted) {
         startGame(gameState.solver, autoPlay);
     } else {
@@ -660,7 +985,7 @@ function updateAlgorithmDisplay(solver, autoPlay) {
     };
     
     algoName.textContent = solverNames[solver] || solver.toUpperCase();
-    algoMode.textContent = autoPlay ? '🤖 Auto Play Mode' : '💡 Hint Mode - Click suggestions or type';
+    algoMode.textContent = autoPlay ? 'Auto Play Mode' : 'Hint Mode - Click suggestions or type';
 }
 
 // Visualization with Chart.js
@@ -668,9 +993,25 @@ function initVisualization() {
     vizCanvas = document.getElementById('vizCanvas');
     chartCanvas = document.getElementById('chartCanvas');
     
-    if (!vizCanvas || !chartCanvas) return;
+    if (!vizCanvas || !chartCanvas) {
+        console.error('Canvas elements not found!');
+        return;
+    }
 
     vizCtx = vizCanvas.getContext('2d');
+    
+    // Set up viz tab switching
+    document.querySelectorAll('.viz-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.viz-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentVizTab = tab.dataset.tab;
+            console.log('Switching to viz tab:', currentVizTab);
+            renderVisualization();
+        });
+    });
+    
+    console.log('Visualization initialized');
     renderVisualization();
 }
 
@@ -692,31 +1033,34 @@ function renderVisualization() {
             drawEntropyChartJS();
             break;
         case 'search':
+            vizCanvas.style.display = 'block';
+            chartCanvas.style.display = 'none';
             drawSearchSpace();
             break;
         case 'tree':
-            // Tree now uses Chart.js too
+            // Tree now uses Chart.js - handled in drawDecisionTree()
             drawDecisionTree();
             break;
     }
 }
 
 function drawDecisionTree() {
-    const width = vizCanvas.width;
-    const height = vizCanvas.height;
-
     if (gameState.attempts.length === 0) {
-        drawPlaceholder('📊 Timeline will appear after first guess');
+        // Show placeholder on viz canvas
+        vizCanvas.style.display = 'block';
+        chartCanvas.style.display = 'none';
+        drawPlaceholder('Analysis will appear after first guess');
         return;
     }
 
     // Use Chart.js for better visualization
-    chartCanvas.style.display = 'block';
     vizCanvas.style.display = 'none';
+    chartCanvas.style.display = 'block';
     
     // Destroy existing chart
     if (activeChart) {
         activeChart.destroy();
+        activeChart = null;
     }
 
     const ctx = chartCanvas.getContext('2d');
@@ -726,8 +1070,12 @@ function drawDecisionTree() {
     const greenCounts = gameState.attempts.map(a => (a.feedback || []).filter(f => f === 2).length);
     const yellowCounts = gameState.attempts.map(a => (a.feedback || []).filter(f => f === 1).length);
     const remainingWords = gameState.attempts.map(a => a.remainingWords || 0);
+    
+    console.log('Drawing decision tree chart with', gameState.attempts.length, 'attempts');
+    console.log('Chart data:', { labels, greenCounts, yellowCounts, remainingWords });
 
-    activeChart = new Chart(ctx, {
+    try {
+        activeChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
@@ -773,7 +1121,7 @@ function drawDecisionTree() {
             plugins: {
                 title: {
                     display: true,
-                    text: '📊 Guess Progress & Feedback Analysis',
+                    text: 'Guess Progress & Feedback Analysis',
                     color: '#89b4fa',
                     font: {
                         size: 18,
@@ -867,7 +1215,15 @@ function drawDecisionTree() {
                 }
             }
         }
-    });
+        });
+        console.log('Chart created successfully!');
+    } catch (error) {
+        console.error('Error creating Chart.js chart:', error);
+        // Fallback to canvas
+        vizCanvas.style.display = 'block';
+        chartCanvas.style.display = 'none';
+        drawPlaceholder('Visualization Error - Try refreshing');
+    }
 }
 
 function drawEntropyChartJS() {
@@ -919,7 +1275,7 @@ function drawEntropyChartJS() {
                 },
                 title: {
                     display: true,
-                    text: '📉 Word Space Reduction',
+                    text: 'Word Space Reduction',
                     color: '#89b4fa',
                     font: { size: 16, family: 'Segoe UI', weight: 'bold' }
                 }
@@ -953,7 +1309,7 @@ function drawSearchSpace() {
     if (gameState.attempts.length === 0) {
         vizCanvas.style.display = 'block';
         chartCanvas.style.display = 'none';
-        drawPlaceholder('🔍 Search space visualization after guesses');
+        drawPlaceholder('Search space visualization after guesses');
         return;
     }
 
@@ -1024,7 +1380,7 @@ function drawSearchSpace() {
                 },
                 title: {
                     display: true,
-                    text: '🎯 Search Space Pruning Efficiency',
+                    text: 'Search Space Pruning Efficiency',
                     color: '#89b4fa',
                     font: { size: 16, family: 'Segoe UI', weight: 'bold' },
                     padding: 20

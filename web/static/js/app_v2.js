@@ -625,7 +625,7 @@ function drawEntropyChart() {
     vizCtx.font = 'bold 14px monospace';
     vizCtx.fillStyle = '#89b4fa';
     vizCtx.textAlign = 'center';
-    vizCtx.fillText('📉 Word Space Reduction', width / 2, 20);
+    vizCtx.fillText('Word Space Reduction', width / 2, 20);
     
     const padding = 50;
     const chartHeight = height - padding - 40;

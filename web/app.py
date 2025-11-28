@@ -11,7 +11,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from game.wordle_logic import WordleGame, MISS, MISPLACED, EXACT
-from algorithms.solvers import DFSSolver, HillClimbingSolver
+from algorithms.solvers import DFSSolver, EntropySolver, KnowledgeBasedHillClimbingSolver, ProgressiveEntropySolver
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'wordle-ai-visualizer-secret'
@@ -25,7 +25,9 @@ def get_solver_class(solver_name):
     """Get solver class by name"""
     solvers = {
         'dfs': DFSSolver,
-        'hillclimbing': HillClimbingSolver
+        'entropy': EntropySolver,
+        'kbhillclimbing': KnowledgeBasedHillClimbingSolver,
+        'progressive': ProgressiveEntropySolver
     }
     return solvers.get(solver_name.lower(), DFSSolver)
 
