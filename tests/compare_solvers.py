@@ -16,7 +16,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from game.wordle_logic import WordleGame
-from algorithms.solvers import DFSSolver, HillClimbingSolver, EntropySolver
+from algorithms.solvers import DFSSolver, HillClimbingSolver, EntropySolver, ProgressiveEntropySolver
 from data import paths
 
 
@@ -228,50 +228,54 @@ def main():
     # Run benchmarks
     quiet = not args.verbose
     dfs_stats = run_solver_benchmark(DFSSolver, "DFS", secret_words, verbose=args.verbose, quiet=quiet)
-    hc_stats = run_solver_benchmark(HillClimbingSolver, "Hill Climbing", secret_words, verbose=args.verbose, quiet=quiet)
+   # hc_stats = run_solver_benchmark(HillClimbingSolver, "Hill Climbing", secret_words, verbose=args.verbose, quiet=quiet)
     # Include Entropy solver (single-core only)
-    ent_stats = run_solver_benchmark(EntropySolver, "Entropy", secret_words, verbose=args.verbose, quiet=quiet)
+   # ent_stats = run_solver_benchmark(EntropySolver, "Entropy", secret_words, verbose=args.verbose, quiet=quiet)
     
+
+    """ #NOTE: HARD CODE, NEED TO CHANGE IN CLASS OF PROG_ENTROPY """ 
+    sampling_parameter = 100
+
+
+    prog_ent_stats = run_solver_benchmark(ProgressiveEntropySolver, "Progressive Entropy", secret_words, verbose=args.verbose, quiet=quiet)
+
     # Print summary
-    print_summary(dfs_stats, hc_stats)
-    print("\nEntropy Solver Summary")
+    print_summary(dfs_stats, prog_ent_stats)
+    print("\nProgressive Entropy Solver Summary")
     print("-"*60)
-    print(f"Total Games                    {ent_stats['total_games']}")
-    print(f"Wins                           {ent_stats['wins']}")
-    print(f"Win Rate (%)                   {ent_stats['win_rate']:.2f}")
-    print(f"Avg Attempts (when won)        {ent_stats['avg_attempts']:.2f}")
-    print(f"Avg Nodes Visited              {ent_stats['avg_nodes_visited']:.1f}")
-    print(f"Avg Time/Game (s)              {ent_stats['avg_time_per_game']:.4f}")
-    print(f"Total Time (s)                 {ent_stats['total_time']:.2f}")
+    print(f"Sampling Parameter:                    {sampling_parameter}")
+    print(f"Total Games                    {prog_ent_stats['total_games']}")
+    print(f"Wins                           {prog_ent_stats['wins']}")
+    print(f"Win Rate (%)                   {prog_ent_stats['win_rate']:.2f}")
+    print(f"Avg Attempts (when won)        {prog_ent_stats['avg_attempts']:.2f}")
+    print(f"Avg Nodes Visited              {prog_ent_stats['avg_nodes_visited']:.1f}")
+    print(f"Avg Time/Game (s)              {prog_ent_stats['avg_time_per_game']:.4f}")
+    print(f"Total Time (s)                 {prog_ent_stats['total_time']:.2f}")
     # Print average consistency sizes by attempt index
-    if 'avg_consistency_by_attempt' in ent_stats:
+    if 'avg_consistency_by_attempt' in prog_ent_stats:
         print("\nConsistency Size (avg by attempt)")
-        for attempt_idx in sorted(ent_stats['avg_consistency_by_attempt'].keys()):
-            avg_sz = ent_stats['avg_consistency_by_attempt'][attempt_idx]
+        for attempt_idx in sorted(prog_ent_stats['avg_consistency_by_attempt'].keys()):
+            avg_sz = prog_ent_stats['avg_consistency_by_attempt'][attempt_idx]
             print(f"  Attempt {attempt_idx}: {avg_sz:.1f} candidates on average")
     # No workers in single-thread mode
     # Print attempts distribution for Entropy solver
     print("\nAttempts Distribution (Entropy)")
-    for attempt in sorted([k for k in ent_stats['attempts_distribution'].keys() if k != 'failed']):
-        count = ent_stats['attempts_distribution'][attempt]
-        print(f"  {attempt} attempts: {count} games ({count/ent_stats['total_games']*100:.1f}%)")
-    if 'failed' in ent_stats['attempts_distribution']:
-        count = ent_stats['attempts_distribution']['failed']
-        print(f"  Failed: {count} games ({count/ent_stats['total_games']*100:.1f}%)")
+    for attempt in sorted([k for k in prog_ent_stats['attempts_distribution'].keys() if k != 'failed']):
+        count = prog_ent_stats['attempts_distribution'][attempt]
+        print(f"  {attempt} attempts: {count} games ({count/prog_ent_stats['total_games']*100:.1f}%)")
+    if 'failed' in prog_ent_stats['attempts_distribution']:
+        count = prog_ent_stats['attempts_distribution']['failed']
+        print(f"  Failed: {count} games ({count/prog_ent_stats['total_games']*100:.1f}%)")
     
     # Save detailed results
     output_data = {
         'dfs': dfs_stats,
-        'hill_climbing': hc_stats,
-        'entropy': ent_stats,
+        'progressive entropy': prog_ent_stats,
         'comparison': {
             'total_games': len(secret_words),
             'dfs_win_rate': dfs_stats['win_rate'],
-            'hc_win_rate': hc_stats['win_rate'],
-            'entropy_win_rate': ent_stats['win_rate'],
-            'dfs_faster_than_hc': dfs_stats['total_time'] < hc_stats['total_time'],
-            'hc_faster_than_entropy': hc_stats['total_time'] < ent_stats['total_time'],
-            'dfs_faster_than_entropy': dfs_stats['total_time'] < ent_stats['total_time']
+            'progressive_entropy_win_rate': prog_ent_stats['win_rate'],
+            'dfs_faster_than_prog_entropy': dfs_stats['total_time'] < prog_ent_stats['total_time']
         }
     }
     
