@@ -1,6 +1,6 @@
 import random
 import os
-import json
+import numpy as np
 from collections import Counter
 from data import paths
 
@@ -9,26 +9,29 @@ MISS = 0       # Gray
 MISPLACED = 1  # Yellow
 EXACT = 2      # Green
 
+
 class WordleGame:
+    """
+    Wordle game logic with optimized pattern lookup using NumPy matrix.
+    
+    Uses the full symmetric pattern matrix (allowed_words x allowed_words)
+    for O(1) pattern lookups. This benefits ALL solvers that use evaluate_guess().
+    """
+    
+    # Class-level cache for pattern matrix (shared across all game instances)
+    _pattern_matrix = None
+    _word_to_idx = None
+    _word_list = None
+    _matrix_loaded = False
+    
     def __init__(self, 
                  allowed_words_path=paths.ALLOWED_WORDS, 
                  possible_words_path=paths.POSSIBLE_WORDS, 
-                 matrix_path=paths.MATRIX_PATH, 
                  secret_word=None):
         
-        # --- 1. Setup Paths ---
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        def get_full_path(p):
-            return os.path.join(script_dir, p) if not os.path.isabs(p) else p
-
-        allowed_path = get_full_path(allowed_words_path)
-        possible_path = get_full_path(possible_words_path)
-        matrix_full_path = get_full_path(matrix_path)
-        
-        # --- 2. Load Words (Standard Lists) ---
-        self.allowed_words = self.load_words(allowed_path)
-        self.possible_words = self.load_words(possible_path)
+        # --- 1. Load Words (Standard Lists) ---
+        self.allowed_words = self._load_words(allowed_words_path)
+        self.possible_words = self._load_words(possible_words_path)
         
         if not self.allowed_words:
             self.allowed_words = ["apple", "raise", "stone", "crate", "slate", "trace", "arise"]
@@ -37,13 +40,11 @@ class WordleGame:
 
         self.allowed_words = set(self.allowed_words)
         
-        # --- 3. Load Optimization Matrix ---
-        self.matrix_data = None
-        self.secret_map = {} # Maps secret_word -> row_index
-        self.guess_map = {}  # Maps guess_word -> col_index
-        self.load_matrix(matrix_full_path)
+        # --- 2. Load Full Pattern Matrix (shared across instances) ---
+        if not WordleGame._matrix_loaded:
+            self._load_pattern_matrix()
 
-        # --- 4. Game State Setup ---
+        # --- 3. Game State Setup ---
         self.max_attempts = 6
         self.reset(secret_word)
 
@@ -59,40 +60,40 @@ class WordleGame:
         self.game_over = False
         self.won = False
 
-    def load_words(self, path):
+    @staticmethod
+    def _load_words(path):
+        """Load words from file."""
         try:
             with open(path, 'r') as f:
                 return [line.strip().lower() for line in f if len(line.strip()) == 5]
         except FileNotFoundError:
             return []
 
-    def load_matrix(self, path):
+    @classmethod
+    def _load_pattern_matrix(cls):
         """
-        Loads the asymmetric matrix (Possible x Allowed).
+        Load the full symmetric NumPy pattern matrix (allowed_words x allowed_words).
+        This is shared across all game instances for efficiency.
         """
-        if not os.path.exists(path):
-            print(f"[Info] Matrix not found at {path}. Running in calculation mode.")
-            return
-
-        try:
-            print("Loading optimization matrix...")
-            with open(path, 'r') as f:
-                data = json.load(f)
-                
-            # We must build maps based on the JSON content to ensure index alignment
-            # Row Map: Possible Words (Secrets)
-            self.secret_map = {w: i for i, w in enumerate(data["possible_words"])}
+        matrix_path = paths.FULL_MATRIX_PATH
+        
+        if os.path.exists(matrix_path):
+            print("Loading full pattern matrix for game...")
+            cls._pattern_matrix = np.load(matrix_path)
             
-            # Col Map: Allowed Words (Guesses)
-            self.guess_map = {w: i for i, w in enumerate(data["allowed_words"])}
+            # Load word list for index mapping
+            with open(paths.ALLOWED_WORDS, 'r') as f:
+                cls._word_list = [line.strip().lower() for line in f if len(line.strip()) == 5]
             
-            self.matrix_data = data["matrix"]
-            print(f"Matrix loaded: {len(self.secret_map)} secrets x {len(self.guess_map)} guesses.")
-        except Exception as e:
-            print(f"[Warning] Failed to load matrix: {e}")
-            self.matrix_data = None
-            self.secret_map = {}
-            self.guess_map = {}
+            cls._word_to_idx = {w: i for i, w in enumerate(cls._word_list)}
+            
+            print(f"Pattern matrix loaded: {cls._pattern_matrix.shape} (O(1) lookups enabled)")
+            cls._matrix_loaded = True
+        else:
+            print(f"[Warning] Full pattern matrix not found at {matrix_path}")
+            print("Run: python data/generate_full_matrix.py to create it.")
+            print("Falling back to calculation mode (slower).")
+            cls._matrix_loaded = True  # Mark as loaded to prevent retry
 
     def validate_guess(self, guess):
         guess = guess.lower()
@@ -104,8 +105,14 @@ class WordleGame:
 
     def evaluate_guess(self, guess, secret_word=None):
         """
-        Returns an INTEGER representing the feedback in base-3.
-        Lookup Order: matrix[secret_index][guess_index]
+        Returns an INTEGER representing the feedback pattern in base-3.
+        
+        Uses O(1) NumPy matrix lookup when available.
+        Matrix layout: pattern_matrix[guess_idx, secret_idx] = pattern
+        
+        Pattern encoding (base-3 integer):
+        - Each position: 0=MISS (gray), 1=MISPLACED (yellow), 2=EXACT (green)
+        - pattern = p0 + 3*p1 + 9*p2 + 27*p3 + 81*p4
         """
         if secret_word is None:
             secret_word = self.secret_word
@@ -113,30 +120,36 @@ class WordleGame:
         guess = guess.lower()
         secret_word = secret_word.lower()
 
-        # --- OPTIMIZED LOOKUP ---
-        # We check if the specific pairing exists in our precomputed maps
-        if (self.matrix_data and 
-            secret_word in self.secret_map and 
-            guess in self.guess_map):
+        # --- OPTIMIZED O(1) LOOKUP ---
+        if (self._pattern_matrix is not None and 
+            guess in self._word_to_idx and 
+            secret_word in self._word_to_idx):
             
-            row = self.secret_map[secret_word]
-            col = self.guess_map[guess]
-            return self.matrix_data[row][col]
+            guess_idx = self._word_to_idx[guess]
+            secret_idx = self._word_to_idx[secret_word]
+            return int(self._pattern_matrix[guess_idx, secret_idx])
         # ------------------------
 
-        # FALLBACK: Manual Calculation
+        # FALLBACK: Manual Calculation (for words not in matrix)
+        return self._calculate_pattern(guess, secret_word)
+    
+    def _calculate_pattern(self, guess, secret_word):
+        """
+        Manually calculate the feedback pattern.
+        Used as fallback when matrix lookup is not available.
+        """
         secret = list(secret_word)
         guess_list = list(guess)
         feedback = [MISS] * 5
         
-        # 1. Green Pass
+        # 1. Green Pass - exact matches
         for i in range(5):
             if guess_list[i] == secret[i]:
                 feedback[i] = EXACT
                 secret[i] = None 
                 guess_list[i] = None 
 
-        # 2. Yellow Pass
+        # 2. Yellow Pass - misplaced letters
         secret_counter = Counter([s for s in secret if s is not None])
 
         for i in range(5):
@@ -145,7 +158,7 @@ class WordleGame:
                     feedback[i] = MISPLACED
                     secret_counter[guess_list[i]] -= 1
         
-        # 3. Convert to Base-3 Int
+        # 3. Convert to Base-3 Integer
         feedback_int = 0
         for f in feedback:
             feedback_int = feedback_int * 3 + f

@@ -147,3 +147,5 @@ $RECYCLE.BIN/
 #data
 data/wordle_matrix.json
 solver_comparison.json
+kb_hillclimbing_results.json
+full_pattern_matrix.npy
