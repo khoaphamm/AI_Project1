@@ -215,14 +215,9 @@ class EntropySolver(BaseSolver):
     
     Strategy: Guess the word that provides the highest Expected Information (Entropy).
     Formula: E[I] = Sum( -p(pattern) * log2(p(pattern)) )
-    """
     
-    # Class-level cache for pattern matrix (shared across all instances)
-    _pattern_matrix = None      # Shape: (n_words, n_words) - symmetric
-    _word_to_idx = None         # Maps word -> index (same for rows and columns)
-    _idx_to_word = None         # Maps index -> word
-    _word_list = None           # Ordered list of words
-    _initialized = False
+    MEMORY EFFICIENT: Reuses the pattern matrix from WordleGame instead of loading its own copy.
+    """
     
     def __init__(self, game):
         super().__init__(game)
@@ -230,35 +225,31 @@ class EntropySolver(BaseSolver):
         self.already_used = set()
         self.suggestions = []
         
-        # Initialize the pattern matrix (only once, shared across instances)
-        if not EntropySolver._initialized:
-            self._initialize_pattern_matrix()
-    
-    @classmethod
-    def _initialize_pattern_matrix(cls):
-        """Load the full symmetric NumPy pattern matrix (allowed_words x allowed_words)."""
-        full_matrix_path = paths.FULL_MATRIX_PATH
-        
-        if os.path.exists(full_matrix_path):
-            # Load pre-computed full matrix
-            print("Loading full pattern matrix (allowed_words x allowed_words)...")
-            cls._pattern_matrix = np.load(full_matrix_path)
-            
-            # Load word list to build index mapping
-            with open(paths.ALLOWED_WORDS, 'r') as f:
-                cls._word_list = [line.strip().lower() for line in f if len(line.strip()) == 5]
-            
-            cls._word_to_idx = {w: i for i, w in enumerate(cls._word_list)}
-            cls._idx_to_word = {i: w for i, w in enumerate(cls._word_list)}
-            
-            print(f"Full matrix loaded: {cls._pattern_matrix.shape} (fair mode - no cheating)")
-        else:
-            raise FileNotFoundError(
-                f"Full pattern matrix not found at {full_matrix_path}.\n"
-                f"Please run: python data/generate_full_matrix.py"
+        # Verify the game has the pattern matrix loaded
+        if game._pattern_matrix is None:
+            raise RuntimeError(
+                "WordleGame does not have pattern matrix loaded.\n"
+                "Run: python data/generate_full_matrix.py to create it."
             )
-        
-        cls._initialized = True
+    
+    @property
+    def _pattern_matrix(self):
+        """Reuse pattern matrix from WordleGame."""
+        return self.game._pattern_matrix
+    
+    @property
+    def _word_to_idx(self):
+        """Reuse word-to-index mapping from WordleGame."""
+        return self.game._word_to_idx
+    
+    @property
+    def _word_list(self):
+        """Reuse word list from WordleGame."""
+        return self.game._word_list
+    
+    def _idx_to_word(self, idx):
+        """Convert index to word using game's word list."""
+        return self._word_list[idx]
 
     def reset(self):
         """Reset solver state for a new game."""
@@ -380,13 +371,13 @@ class EntropySolver(BaseSolver):
         # Get the index of max entropy
         best_idx = np.argmax(all_entropies)
         best_entropy = all_entropies[best_idx]
-        best_word = self._idx_to_word[best_idx]
+        best_word = self._idx_to_word(best_idx)
         
         # Tie-breaker: If multiple words have same entropy, prefer candidates (possible answers)
         tied_indices = np.where(np.abs(all_entropies - best_entropy) < 1e-9)[0]
         if len(tied_indices) > 1:
             for idx in tied_indices:
-                word = self._idx_to_word[idx]
+                word = self._idx_to_word(idx)
                 if word in self.currently_consistent_words:
                     best_word = word
                     break
@@ -420,7 +411,7 @@ class EntropySolver(BaseSolver):
         # Create list of (word, entropy) tuples
         word_scores = []
         for idx, entropy_val in enumerate(all_entropies):
-            word = self._idx_to_word[idx]
+            word = self._idx_to_word(idx)
             if word not in self.already_used:
                 word_scores.append((word, float(entropy_val)))
         
@@ -516,6 +507,8 @@ class KnowledgeBasedHillClimbingSolver(BaseSolver):
 class ProgressiveEntropySolver(BaseSolver):
     """
     Progressive Entropy Sampling Solver with Caching & Best-in-Cache Check.
+    
+    MEMORY EFFICIENT: Reuses the pattern matrix from WordleGame for fast entropy calculation.
     """
     
     def __init__(self, game, samples_per_node=100):
@@ -523,34 +516,70 @@ class ProgressiveEntropySolver(BaseSolver):
         self.sample_size = samples_per_node
         self.first_guess = "tares" # 3b1b favorite
         self._turn_entropy_cache = {} # Maps word -> entropy
-        print("sampling para: ", 100)
+        self._candidate_indices = None  # Cached candidate indices for current turn
 
     def reset(self):
         """Reset solver state for a new game."""
         super().reset()
         self._turn_entropy_cache = {}
+        self._candidate_indices = None
+
+    @property
+    def _pattern_matrix(self):
+        """Reuse pattern matrix from WordleGame."""
+        return self.game._pattern_matrix
+    
+    @property
+    def _word_to_idx(self):
+        """Reuse word-to-index mapping from WordleGame."""
+        return self.game._word_to_idx
 
     def calculate_entropy(self, guess_word, candidates):
-        """Calculates E[I] with caching."""
+        """
+        Calculates E[I] with caching.
+        Uses vectorized NumPy lookup when pattern matrix is available.
+        """
         if guess_word in self._turn_entropy_cache:
             return self._turn_entropy_cache[guess_word]
 
-        counts = Counter()
         num_candidates = len(candidates)
-        
         if num_candidates == 0:
             return 0.0
 
-        for secret in candidates:
-            pattern = self.game.evaluate_guess(guess_word, secret_word=secret)
-            counts[pattern] += 1
+        # Try vectorized calculation using game's pattern matrix
+        if (self._pattern_matrix is not None and 
+            guess_word in self._word_to_idx):
             
-        entropy = 0.0
-        for count in counts.values():
-            if count > 0:
-                p = count / num_candidates
-                entropy += p * -math.log2(p)
-    
+            guess_idx = self._word_to_idx[guess_word]
+            
+            # Build candidate indices if not cached
+            if self._candidate_indices is None:
+                self._candidate_indices = np.array([
+                    self._word_to_idx[c] for c in candidates if c in self._word_to_idx
+                ])
+            
+            # Vectorized pattern lookup
+            patterns = self._pattern_matrix[guess_idx, self._candidate_indices]
+            
+            # Count pattern occurrences
+            counts = np.bincount(patterns, minlength=243)
+            
+            # Calculate entropy
+            probs = counts / len(self._candidate_indices)
+            probs = probs[probs > 0]
+            entropy = -np.sum(probs * np.log2(probs))
+        else:
+            # Fallback: manual calculation
+            counts = Counter()
+            for secret in candidates:
+                pattern = self.game.evaluate_guess(guess_word, secret_word=secret)
+                counts[pattern] += 1
+                
+            entropy = 0.0
+            for count in counts.values():
+                if count > 0:
+                    p = count / num_candidates
+                    entropy += p * -math.log2(p)
 
         self._turn_entropy_cache[guess_word] = entropy
         return entropy
@@ -584,6 +613,9 @@ class ProgressiveEntropySolver(BaseSolver):
                  and self.currently_consistent_words is set.
         """
         candidates = list(self.currently_consistent_words)
+        
+        # Reset candidate indices cache for new candidate set
+        self._candidate_indices = None
         if len(candidates) <= 1:
             if candidates:
                 self.calculate_entropy(candidates[0], candidates)
@@ -641,6 +673,7 @@ class ProgressiveEntropySolver(BaseSolver):
             return self.first_guess
         # 1. Initialization
         self._turn_entropy_cache = {} # Reset cache for new turn
+        self._candidate_indices = None  # Reset candidate indices for new turn
         self._update_trie(history)
         
         # 2. Compute greedy guess via entropy sampling
@@ -692,6 +725,7 @@ class ProgressiveEntropySolver(BaseSolver):
         
         # Compute entropy turn to populate cache if not already done
         self._turn_entropy_cache = {} # Reset cache for new turn
+        self._candidate_indices = None  # Reset candidate indices for new turn
         # no need update trie, since already updated in web.app.player_Guess 
         self._compute_entropy_turn()
 
@@ -713,6 +747,3 @@ class ProgressiveEntropySolver(BaseSolver):
             print(f"  {word}: {entropy:.4f} bits")
         
         return word_entropy_list[:100]
-
-    
-    
