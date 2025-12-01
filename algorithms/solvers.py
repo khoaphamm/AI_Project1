@@ -79,9 +79,9 @@ class BaseSolver:
         Get all currently consistent words as suggestions.
         Returns a list of tuples (word, score).
         """
-        # Return consistent words sorted alphabetically with neutral score
-        suggestions = sorted(list(self.currently_consistent_words))[:100]
-        return [(word, 0.0) for word in suggestions]
+
+        raise NotImplementedError
+        
 
 
 class DFSSolver(BaseSolver):
@@ -107,6 +107,10 @@ class DFSSolver(BaseSolver):
             return word
         
         return list(self.currently_consistent_words)[0] if self.currently_consistent_words else "error"
+    
+    def get_all_suggestions(self):
+        suggestions = sorted(list(self.currently_consistent_words))[:100]
+        return [(word, 0.0) for word in suggestions]
 
 class HillClimbingSolver(BaseSolver):
     """
@@ -198,6 +202,7 @@ class EntropySolver(BaseSolver):
         super().__init__(game)
         self.first_guess = "tares" # 3b1b favorite
         self.already_used = set()
+        self.suggestions = []
 
     def calculate_entropy(self, guess_word, candidates):
         """
@@ -246,7 +251,7 @@ class EntropySolver(BaseSolver):
         search_space = sorted(self.game.allowed_words)
 
         print(f"EntropySolver: Calculating entropy for {len(search_space)} words against {len(candidates)} candidates...")
-
+        self.suggestions = []
         for word in search_space:
             if word in self.already_used:
                 continue
@@ -269,10 +274,33 @@ class EntropySolver(BaseSolver):
             return best_word
             
         return candidates[0]
-
- 
-
+    
+    def get_all_suggestions(self):
+        """
+        Get all word suggestions with their entropy scores.
+        Returns a list of tuples (word, entropy) sorted by entropy descending.
+        """
+        if self.currently_consistent_words == set(self.game.allowed_words):
+            return ["tares", "crane", "arise", "tears", "rates"]
         
+        candidates = list(self.currently_consistent_words)
+        
+        # If only one candidate remains, return it
+        if len(candidates) == 1:
+            return [(candidates[0], 0.0)]
+        
+        # Calculate entropy for each word in allowed_words
+        word_scores = []
+        for word in self.game.allowed_words:
+            if word in self.already_used:
+                continue
+            entropy = self.calculate_entropy(word, candidates)
+            word_scores.append((word, entropy))
+        
+        # Sort by entropy descending, limit to top 100
+        word_scores.sort(key=lambda x: x[1], reverse=True)
+        return word_scores[:100]
+
 
 class KnowledgeBasedHillClimbingSolver(BaseSolver):
     """

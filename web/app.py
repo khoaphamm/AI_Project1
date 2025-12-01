@@ -216,5 +216,5 @@ def get_state():
 
 if __name__ == '__main__':
     print("🎮 Starting Wordle AI Visualizer Web Server...")
-    print("📍 Open your browser to: http://localhost:5000")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    print("📍 Open your browser to: http://localhost:5001")
+    app.run(debug=True, host='0.0.0.0', port=5001)
