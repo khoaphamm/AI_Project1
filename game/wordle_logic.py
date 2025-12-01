@@ -44,12 +44,17 @@ class WordleGame:
         self.load_matrix(matrix_full_path)
 
         # --- 4. Game State Setup ---
+        self.max_attempts = 6
+        self.reset(secret_word)
+
+    def reset(self, secret_word=None):
+        """
+        Reset game state for a new game without reloading word lists and matrix.
+        """
         if secret_word:
             self.secret_word = secret_word.lower()
         else:
             self.secret_word = random.choice(list(self.possible_words))
-            
-        self.max_attempts = 6
         self.attempts = [] 
         self.game_over = False
         self.won = False
