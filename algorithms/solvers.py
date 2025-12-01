@@ -423,21 +423,24 @@ class ProgressiveEntropySolver(BaseSolver):
                 
         return samples
 
-    def pick_guess(self, history):
-        if not history:
-            return self.first_guess
-        # 1. Initialization
-        self._turn_entropy_cache = {} # Reset cache for new turn
-        self._update_trie(history)
-        
+    def _compute_entropy_turn(self):
+        """
+        Performs the greedy entropy construction and populates the turn cache.
+        Returns the greedy_guess word constructed from the Trie traversal.
+        Assumes: self._turn_entropy_cache is reset, self.trie is updated, 
+                 and self.currently_consistent_words is set.
+        """
         candidates = list(self.currently_consistent_words)
         if len(candidates) <= 1:
-            return candidates[0] if candidates else "error"
+            if candidates:
+                self.calculate_entropy(candidates[0], candidates)
+                return candidates[0]
+            return "error"
 
         current_node = self.trie.root
         current_prefix = ""
         
-        # 2. Greedy Construction Loop (Depth 0 to 4)
+        # Greedy Construction Loop (Depth 0 to 4)
         for depth in range(5):
             best_char = None
             max_avg_entropy = -1.0
@@ -473,11 +476,26 @@ class ProgressiveEntropySolver(BaseSolver):
             else:
                 break # Should not happen if tree is valid
 
-        # 3. Final Selection: Greedy vs Best Cached
         greedy_guess = current_prefix
         
         # Ensure the greedy guess is calculated and in the cache
-        greedy_entropy = self.calculate_entropy(greedy_guess, candidates)
+        self.calculate_entropy(greedy_guess, candidates)
+        
+        return greedy_guess
+
+    def pick_guess(self, history):
+        if not history:
+            return self.first_guess
+        # 1. Initialization
+        self._turn_entropy_cache = {} # Reset cache for new turn
+        self._update_trie(history)
+        
+        # 2. Compute greedy guess via entropy sampling
+        greedy_guess = self._compute_entropy_turn()
+        
+        # 3. Final Selection: Greedy vs Best Cached
+        # Ensure the greedy guess is calculated and in the cache
+        greedy_entropy = self._turn_entropy_cache.get(greedy_guess, 0.0)
         
         # Find the single best word we encountered during the entire sampling process
         best_cached_word = None
@@ -510,20 +528,36 @@ class ProgressiveEntropySolver(BaseSolver):
     def get_all_suggestions(self):
         """
         Get all suggestions from the progressive entropy sampling cache.
+        Calls _compute_entropy_turn() to populate the cache if needed.
         Returns a list of tuples (word, entropy) sorted by entropy descending.
         Limited to top 100 suggestions.
         """
-        if not self._turn_entropy_cache:
+        if not self.game.attempts:
             # First try: return the canonical first guess as the single suggestion
             return [(self.first_guess, 0.0)]
         
         
+        # Compute entropy turn to populate cache if not already done
+        self._turn_entropy_cache = {} # Reset cache for new turn
+        # no need update trie, since already updated in web.app.player_Guess 
+        self._compute_entropy_turn()
+
+        
+        
+        
+        print("Number of words left: ")
+        print(len(self.currently_consistent_words))
+
         # Sort cache entries by entropy (highest first) and limit to top 100
         word_entropy_list = sorted(
             self._turn_entropy_cache.items(),
             key=lambda x: x[1],
             reverse=True
         )
+
+        print("Best entropy suggestions from cache:")
+        for word, entropy in word_entropy_list[:10]:
+            print(f"  {word}: {entropy:.4f} bits")
         
         return word_entropy_list[:100]
 
