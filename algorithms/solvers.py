@@ -26,6 +26,15 @@ class BaseSolver:
         # First guess heuristics
         self.first_guess = "crane"  # Common strong opener
         self.search_stats = []
+
+    def reset(self):
+        """
+        Reset solver state for a new game without recreating the solver.
+        Subclasses should override this to reset any additional state.
+        """
+        self.currently_consistent_words = set(self.game.allowed_words)
+        self.trie = None
+        self.search_stats = []
     
     def _update_currently_consistent_words(self, history):
         """
@@ -204,6 +213,12 @@ class EntropySolver(BaseSolver):
         self.already_used = set()
         self.suggestions = []
 
+    def reset(self):
+        """Reset solver state for a new game."""
+        super().reset()
+        self.already_used = set()
+        self.suggestions = []
+
     def calculate_entropy(self, guess_word, candidates):
         """
         Calculates E[I] for a given guess word against the list of possible secrets (candidates).
@@ -377,6 +392,11 @@ class ProgressiveEntropySolver(BaseSolver):
         self.first_guess = "tares" # 3b1b favorite
         self._turn_entropy_cache = {} # Maps word -> entropy
         print("sampling para: ", 100)
+
+    def reset(self):
+        """Reset solver state for a new game."""
+        super().reset()
+        self._turn_entropy_cache = {}
 
     def calculate_entropy(self, guess_word, candidates):
         """Calculates E[I] with caching."""

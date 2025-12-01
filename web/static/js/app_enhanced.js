@@ -45,6 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initVisualization();
     addPhysicalKeyboardSupport();
     loadThemePreference();
+    
+    // Automatically load game on app entry
+    initializeGame();
 });
 
 // Algorithm Loading Functions
@@ -387,9 +390,17 @@ function selectAlgorithm(solverType) {
 }
 
 async function startGame(solver, autoPlay) {
+    return await startGameInternal(solver, autoPlay, false);
+}
+
+async function startGameInternal(solver, autoPlay, suppressToast = false) {
     if (!solver) {
-        showToast('Please select an algorithm first', 'warning');
-        openAlgorithmDropdown();
+        if (!suppressToast) {
+            showToast('Please select an algorithm first', 'warning');
+        }
+        if (!isInitializing) {
+            openAlgorithmDropdown();
+        }
         return;
     }
     
@@ -425,7 +436,9 @@ async function startGame(solver, autoPlay) {
             updateStats(data);
             updateAlgorithmDisplay(solver, autoPlay);
             
-            showToast(`Game started with ${solver.toUpperCase()} solver`, 'success');
+            if (!suppressToast) {
+                showToast(`Game started with ${solver.toUpperCase()} solver`, 'success');
+            }
 
             pauseBtn.disabled = false;
             nextBtn.disabled = autoPlay;
@@ -460,7 +473,9 @@ async function startGame(solver, autoPlay) {
         }
     } catch (error) {
         console.error('Error starting game:', error);
-        showToast('Failed to start game', 'error');
+        if (!suppressToast) {
+            showToast('Failed to start game', 'error');
+        }
     }
 }
 
@@ -712,14 +727,194 @@ function clearCurrentRowDisplay() {
 
 async function loadSuggestions() {
     try {
+        // Show loading indicator in suggestions panel
+        showSuggestionsLoading();
+        
         const response = await fetch(`${API_BASE}/api/suggestions`);
         const data = await response.json();
+        
+        // Hide loading indicator
+        hideSuggestionsLoading();
         
         if (data.success) {
             displaySuggestions(data.suggestions);
         }
     } catch (error) {
         console.error('Error loading suggestions:', error);
+        hideSuggestionsLoading();
+        suggestionsList.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 1rem;">Failed to load suggestions</p>';
+    }
+}
+
+// Suggestions loading indicator
+let suggestionsMessageInterval = null;
+const suggestionsLoadingMessages = [
+    "Analyzing possibilities...",
+    "Calculating entropy...",
+    "Finding optimal words...",
+    "Ranking suggestions..."
+];
+
+function showSuggestionsLoading() {
+    // Clear any existing interval
+    if (suggestionsMessageInterval) {
+        clearInterval(suggestionsMessageInterval);
+        suggestionsMessageInterval = null;
+    }
+    
+    suggestionsList.innerHTML = `
+        <div class="suggestions-loading">
+            <div class="suggestions-spinner">
+                <div class="spinner-dots">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>
+            </div>
+            <div class="suggestions-loading-text">
+                <span class="brain-emoji">🧠</span>
+                <span id="suggestionsLoadingMessage">Analyzing possibilities...</span>
+            </div>
+        </div>
+    `;
+    
+    // Cycle through loading messages
+    const messageElement = document.getElementById('suggestionsLoadingMessage');
+    let currentIndex = 0;
+    
+    suggestionsMessageInterval = setInterval(() => {
+        currentIndex = (currentIndex + 1) % suggestionsLoadingMessages.length;
+        if (messageElement) {
+            messageElement.style.opacity = '0';
+            setTimeout(() => {
+                messageElement.textContent = suggestionsLoadingMessages[currentIndex];
+                messageElement.style.opacity = '1';
+            }, 150);
+        }
+    }, 1200);
+}
+
+function hideSuggestionsLoading() {
+    if (suggestionsMessageInterval) {
+        clearInterval(suggestionsMessageInterval);
+        suggestionsMessageInterval = null;
+    }
+}
+
+// Initial Game Loading
+let isInitializing = false;
+
+async function initializeGame() {
+    isInitializing = true;
+    
+    // Show initial loading overlay
+    showInitialLoading();
+    
+    try {
+        // Start game with default solver (entropy)
+        const defaultSolver = 'entropy';
+        await startGameInternal(defaultSolver, false, true); // Start in hint mode by default, suppress toast
+        
+        // Update algorithm display to show selected solver
+        const algorithmName = document.getElementById('algorithmName');
+        const algorithmMode = document.getElementById('algorithmMode');
+        const modeToggle = document.getElementById('modeToggle');
+        
+        if (algorithmName) {
+            algorithmName.textContent = 'Entropy Solver';
+        }
+        if (algorithmMode) {
+            algorithmMode.textContent = 'Ready to play';
+        }
+        if (modeToggle) {
+            modeToggle.style.display = 'flex';
+        }
+        
+        // Set default mode button as active
+        const hintBtn = document.getElementById('hintModeBtn');
+        if (hintBtn) {
+            hintBtn.classList.add('active');
+        }
+        
+    } catch (error) {
+        console.error('Error initializing game:', error);
+        showToast('Failed to initialize game', 'error');
+    } finally {
+        // Hide initial loading overlay
+        hideInitialLoading();
+        isInitializing = false;
+    }
+}
+
+function showInitialLoading() {
+    // Create or show initial loading overlay
+    let overlay = document.getElementById('initialLoadingOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'initialLoadingOverlay';
+        overlay.className = 'initial-loading-overlay';
+        overlay.innerHTML = `
+            <div class="initial-loading-content">
+                <div class="initial-loading-spinner">
+                    <div class="spinner-large"></div>
+                </div>
+                <div class="initial-loading-text">
+                    <h2>🎮 Loading Wordle AI...</h2>
+                    <p id="initialLoadingMessage">Initializing game engine...</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+    
+    overlay.style.display = 'flex';
+    
+    // Cycle through initialization messages
+    const messageElement = document.getElementById('initialLoadingMessage');
+    const initMessages = [
+        "Initializing game engine...",
+        "Loading word dictionary...",
+        "Setting up AI solver...",
+        "Preparing suggestions...",
+        "Almost ready..."
+    ];
+    
+    let currentIndex = 0;
+    if (messageElement) {
+        messageElement.textContent = initMessages[currentIndex];
+    }
+    
+    const messageInterval = setInterval(() => {
+        currentIndex = (currentIndex + 1) % initMessages.length;
+        if (messageElement) {
+            messageElement.style.opacity = '0';
+            setTimeout(() => {
+                messageElement.textContent = initMessages[currentIndex];
+                messageElement.style.opacity = '1';
+            }, 200);
+        }
+    }, 1000);
+    
+    // Store interval ID for cleanup
+    overlay.dataset.intervalId = messageInterval;
+}
+
+function hideInitialLoading() {
+    const overlay = document.getElementById('initialLoadingOverlay');
+    if (overlay) {
+        // Clear message interval
+        const intervalId = overlay.dataset.intervalId;
+        if (intervalId) {
+            clearInterval(parseInt(intervalId));
+        }
+        
+        // Fade out animation
+        overlay.style.opacity = '0';
+        overlay.style.transition = 'opacity 0.5s ease-out';
+        
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 500);
     }
 }
 

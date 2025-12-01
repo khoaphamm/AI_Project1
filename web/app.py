@@ -56,10 +56,52 @@ def start_game():
         data = request.json
         solver_name = data.get('solver', 'dfs')
         auto_play = data.get('auto_play', False)
-
-        # Create new game
-        game = WordleGame()
+        
         solver_class = get_solver_class(solver_name)
+        
+        # Check if we have an existing session we can reuse
+        existing_session = game_sessions.get(current_session_id)
+        
+        if existing_session and existing_session.get('solver') is not None:
+            existing_solver = existing_session['solver']
+            # If same solver type, just reset instead of recreating
+            if isinstance(existing_solver, solver_class):
+                game = existing_session['game']
+                solver = existing_solver
+                
+                # Reset game and solver state
+                game.reset()
+                solver.reset()
+                
+                # Initialize the solver's trie with all words
+                solver._update_trie([])
+                
+                # Update auto_play setting
+                existing_session['auto_play'] = auto_play
+                
+                print(f"Reusing existing {solver_name} solver (reset)")
+                
+                return jsonify({
+                    'success': True,
+                    'solver': solver_name,
+                    'auto_play': auto_play,
+                    'attempts': len(game.attempts),
+                    'remaining_words': len(solver.currently_consistent_words) if hasattr(solver, 'currently_consistent_words') else None,
+                    'nodes_visited': 0
+                })
+
+        # Create new game only if no existing session or different solver type
+        if existing_session and existing_session.get('game') is not None:
+            # Reuse existing game, just reset it
+            game = existing_session['game']
+            game.reset()
+            print("Reusing existing game instance (reset)")
+        else:
+            # First time - create new game
+            game = WordleGame()
+            print("Created new game instance")
+        
+        # Create new solver for the (possibly reused) game
         solver = solver_class(game)
         
         # Initialize the solver's trie with all words
