@@ -80,8 +80,7 @@ class BaseSolver:
         Returns a list of tuples (word, score).
         """
         # Return consistent words sorted alphabetically with neutral score
-        suggestions = sorted(list(self.currently_consistent_words))[:100]
-        return [(word, 0.0) for word in suggestions]
+        raise
 
 
 class DFSSolver(BaseSolver):
@@ -107,6 +106,10 @@ class DFSSolver(BaseSolver):
             return word
         
         return list(self.currently_consistent_words)[0] if self.currently_consistent_words else "error"
+    
+    def get_all_suggestions(self):
+        suggestions = sorted(list(self.currently_consistent_words))[:100]
+        return [(word, 0.0) for word in suggestions]
 
 class HillClimbingSolver(BaseSolver):
     """
@@ -370,7 +373,8 @@ class ProgressiveEntropySolver(BaseSolver):
             if count > 0:
                 p = count / num_candidates
                 entropy += p * -math.log2(p)
-        
+    
+
         self._turn_entropy_cache[guess_word] = entropy
         return entropy
 
@@ -479,129 +483,25 @@ class ProgressiveEntropySolver(BaseSolver):
         
         return final_guess
 
+    def get_all_suggestions(self):
+        """
+        Get all suggestions from the progressive entropy sampling cache.
+        Returns a list of tuples (word, entropy) sorted by entropy descending.
+        Limited to top 100 suggestions.
+        """
+        if not self._turn_entropy_cache:
+            # First try: return the canonical first guess as the single suggestion
+            return [(self.first_guess, 0.0)]
+        
+        
+        # Sort cache entries by entropy (highest first) and limit to top 100
+        word_entropy_list = sorted(
+            self._turn_entropy_cache.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+        
+        return word_entropy_list[:100]
 
-    # def calculate_entropy(self, guess_word, candidates):
-    #     """Calculates E[I] with caching."""
-    #     if guess_word in self._turn_entropy_cache:
-    #         return self._turn_entropy_cache[guess_word]
-
-    #     counts = Counter()
-    #     num_candidates = len(candidates)
-        
-    #     if num_candidates == 0:
-    #         return 0.0
-
-    #     for secret in candidates:
-    #         pattern = self.game.evaluate_guess(guess_word, secret_word=secret)
-    #         counts[pattern] += 1
-            
-    #     entropy = 0.0
-    #     for count in counts.values():
-    #         if count > 0:
-    #             p = count / num_candidates
-    #             entropy += p * -math.log2(p)
-        
-    #     self._turn_entropy_cache[guess_word] = entropy
-    #     return entropy
-
-    # def _get_random_samples(self, start_node, k):
-    #     """
-    #     Efficiently retrieves 'k' random words from the subtree of 'start_node'
-    #     without traversing the entire subtree.
-        
-    #     Algorithm: Randomized DFS with Early Stopping.
-    #     Complexity: ~O(k * 5) instead of O(Subtree_Size).
-    #     """
-    #     samples = []
-        
-    #     # Stack stores tuples of (node, current_word_string)
-    #     # We need to reconstruct the string because TrieNode stores 'char', not full 'word'
-    #     # (Though the provided TrieNode has .word property for leaves, we need path for safety)
-        
-    #     # Note: In the provided Trie logic, leaves store the full word in .word
-    #     stack = [start_node]
-        
-    #     while stack and len(samples) < k:
-    #         node = stack.pop()
-            
-    #         if node.is_word:
-    #             samples.append(node.word)
-    #             if len(samples) >= k:
-    #                 break
-            
-    #         # Get children, shuffle them to ensure randomness, and push to stack
-    #         children = list(node.children.values())
-    #         random.shuffle(children)
-            
-    #         for child in children:
-    #             stack.append(child)
-                
-    #     return samples
-
-    # def pick_guess(self, history):
-    #     if not history:
-    #         return self.first_guess
-        
-    #     # 1. Initialization
-    #     self._turn_entropy_cache = {}
-    #     self._update_trie(history)
-        
-    #     candidates = list(self.currently_consistent_words)
-    #     if len(candidates) <= 1:
-    #         return candidates[0] if candidates else "error"
-
-    #     current_node = self.trie.root
-    #     current_prefix = ""
-        
-    #     print(f"ProgressiveEntropy: Starting selection on {len(candidates)} candidates.")
-
-    #     # 2. Progression (Depth 0 to 4)
-    #     for depth in range(5):
-    #         best_char = None
-    #         max_estimated_entropy = -1.0
-            
-    #         possible_chars = list(current_node.children.keys())
-            
-    #         if not possible_chars:
-    #             break
-
-    #         # 3. Character Selection
-    #         for char in possible_chars:
-    #             child_node = current_node.children[char]
-                
-    #             # OPTIMIZATION: Instead of get_words_with_prefix (High Complexity),
-    #             # we use our custom randomized sampler (Low Complexity).
-    #             samples = self._get_random_samples(child_node, self.sample_size)
-                
-    #             if not samples:
-    #                 continue
-                
-    #             # Compute average entropy of the samples
-    #             total_entropy = 0.0
-    #             for word in samples:
-    #                 total_entropy += self.calculate_entropy(word, candidates)
-                
-    #             avg_entropy = total_entropy / len(samples)
-                
-    #             # 4. Greedy Move
-    #             if avg_entropy > max_estimated_entropy:
-    #                 max_estimated_entropy = avg_entropy
-    #                 best_char = char
-            
-    #         if best_char:
-    #             current_prefix += best_char
-    #             current_node = current_node.children[best_char]
-    #         else:
-    #             return candidates[0]
-
-    #     guess = current_prefix
-        
-    #     self.search_stats.append({
-    #         'method': 'ProgressiveEntropy',
-    #         'sample_size': self.sample_size,
-    #         'word_found': guess,
-    #         'cache_hits': len(self._turn_entropy_cache)
-    #     })
-        
-    #     print(f"ProgressiveEntropy: Selected '{guess}'")
-    #     return guess
+    
+    
