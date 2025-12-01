@@ -1,6 +1,7 @@
 """
-Statistical comparison of DFS and Hill Climbing solvers across all possible Wordle games.
-Tests both solvers against all ~2300 possible secret words and reports aggregate statistics.
+Statistical comparison of Wordle solvers across all possible games.
+Compares: DFSSolver, KnowledgeBasedHillClimbingSolver, EntropySolver, ProgressiveEntropySolver
+Tracks: win rate, attempts, time, nodes visited, and memory usage.
 """
 
 import argparse
@@ -8,6 +9,7 @@ import json
 import os
 import sys
 import time
+import tracemalloc
 from collections import defaultdict
 
 # Add project root to path
@@ -16,8 +18,21 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from game.wordle_logic import WordleGame
-from algorithms.solvers import DFSSolver, HillClimbingSolver, EntropySolver, ProgressiveEntropySolver
+from algorithms.solvers import (
+    DFSSolver,
+    KnowledgeBasedHillClimbingSolver,
+    EntropySolver,
+    ProgressiveEntropySolver
+)
 from data import paths
+
+# Define solvers to compare
+SOLVERS = [
+    ("DFS", DFSSolver),
+    ("KB-HillClimb", KnowledgeBasedHillClimbingSolver),
+    ("Entropy", EntropySolver),
+    ("ProgEntropy", ProgressiveEntropySolver),
+]
 
 
 def play_game(solver, secret_word, max_attempts=20, verbose=False, quiet=True):
@@ -25,7 +40,6 @@ def play_game(solver, secret_word, max_attempts=20, verbose=False, quiet=True):
     Play a single game with the given solver and secret word.
     Returns game statistics.
     """
-    # Suppress print output from solver if quiet mode
     import io
     import contextlib
     
@@ -38,6 +52,9 @@ def play_game(solver, secret_word, max_attempts=20, verbose=False, quiet=True):
         # Reset solver state for new game
         solver.currently_consistent_words = set(solver.game.allowed_words)
         solver.search_stats = []
+        # Reset solver-specific state if available
+        if hasattr(solver, 'reset'):
+            solver.reset()
     
     game = solver.game
     history = []
@@ -90,18 +107,26 @@ def play_game(solver, secret_word, max_attempts=20, verbose=False, quiet=True):
         'guesses': [g for g, _ in history],
         'consistency_sizes': consistency_sizes
     }
-def run_solver_benchmark(solver_class, solver_name, secret_words, verbose=False, quiet=True, solver_kwargs=None):
+def run_solver_benchmark(solver_class, solver_name, secret_words, verbose=False, quiet=True):
     """
     Run a solver against all secret words and collect statistics.
+    Includes memory tracking.
     """
     print(f"\n{'='*60}")
     print(f"Testing {solver_name}")
     print(f"{'='*60}")
     
+    # Start memory tracking
+    tracemalloc.start()
+    
     # Create game and solver once, reuse for all tests
     game = WordleGame()
-    game.max_attempts = 20  # Unlimited attempts for testing
+    game.max_attempts = 20
     solver = solver_class(game)
+    
+    # Measure initial memory after solver creation
+    current, peak_init = tracemalloc.get_traced_memory()
+    init_memory_mb = peak_init / 1024 / 1024
     
     results = []
     wins = 0
@@ -138,6 +163,11 @@ def run_solver_benchmark(solver_class, solver_name, secret_words, verbose=False,
             if sz is not None:
                 per_attempt_consistency[i].append(sz)
     
+    # Get peak memory usage
+    current, peak = tracemalloc.get_traced_memory()
+    peak_memory_mb = peak / 1024 / 1024
+    tracemalloc.stop()
+    
     num_games = len(secret_words)
     win_rate = (wins / num_games * 100) if num_games > 0 else 0
     avg_attempts = (total_attempts / num_games) if num_games > 0 else 0
@@ -154,6 +184,8 @@ def run_solver_benchmark(solver_class, solver_name, secret_words, verbose=False,
         'avg_nodes_visited': avg_nodes,
         'avg_time_per_game': avg_time,
         'total_time': total_time,
+        'init_memory_mb': init_memory_mb,
+        'peak_memory_mb': peak_memory_mb,
         'attempts_distribution': dict(attempts_distribution),
         'results': results,
         'avg_consistency_by_attempt': {k: (sum(v)/len(v) if v else 0) for k, v in per_attempt_consistency.items()}
@@ -164,45 +196,119 @@ def run_solver_benchmark(solver_class, solver_name, secret_words, verbose=False,
 
 
 
-def print_summary(dfs_stats, hc_stats):
-    """Print comparison summary."""
+def print_summary(all_stats):
+    """Print comparison summary for all solvers."""
+    print(f"\n{'='*80}")
+    print("SUMMARY COMPARISON - ALL SOLVERS")
+    print(f"{'='*80}")
+    
+    # Header
+    header = f"{'Metric':<25}"
+    for stats in all_stats:
+        header += f"{stats['solver']:<14}"
+    print(header)
+    print("-" * 80)
+    
+    # Metrics rows
+    metrics = [
+        ('Total Games', 'total_games', '{:<14}'),
+        ('Wins', 'wins', '{:<14}'),
+        ('Losses', 'losses', '{:<14}'),
+        ('Win Rate (%)', 'win_rate', '{:<14.2f}'),
+        ('Avg Attempts', 'avg_attempts', '{:<14.2f}'),
+        ('Avg Nodes', 'avg_nodes_visited', '{:<14.1f}'),
+        ('Avg Time/Game (s)', 'avg_time_per_game', '{:<14.4f}'),
+        ('Total Time (s)', 'total_time', '{:<14.2f}'),
+        ('Init Memory (MB)', 'init_memory_mb', '{:<14.1f}'),
+        ('Peak Memory (MB)', 'peak_memory_mb', '{:<14.1f}'),
+    ]
+    
+    for label, key, fmt in metrics:
+        row = f"{label:<25}"
+        for stats in all_stats:
+            value = stats.get(key, 0)
+            row += fmt.format(value)
+        print(row)
+    
+    # Print attempts distribution for each solver
+    for stats in all_stats:
+        print(f"\n{'Attempts Distribution'} ({stats['solver']}):")
+        dist = stats['attempts_distribution']
+        for attempt in sorted([k for k in dist.keys() if k != 'failed']):
+            count = dist[attempt]
+            pct = count / stats['total_games'] * 100
+            bar = '█' * int(pct / 2)
+            print(f"  {attempt} attempts: {count:>4} ({pct:>5.1f}%) {bar}")
+        if 'failed' in dist:
+            count = dist['failed']
+            pct = count / stats['total_games'] * 100
+            print(f"  Failed:    {count:>4} ({pct:>5.1f}%)")
+
+
+def print_memory_comparison(all_stats):
+    """Print memory usage comparison."""
     print(f"\n{'='*60}")
-    print("SUMMARY COMPARISON")
+    print("MEMORY USAGE COMPARISON")
     print(f"{'='*60}")
-    print(f"{'Metric':<30} {'DFS':<15} {'Hill Climbing':<15}")
-    print(f"{'-'*60}")
-    print(f"{'Total Games':<30} {dfs_stats['total_games']:<15} {hc_stats['total_games']:<15}")
-    print(f"{'Wins':<30} {dfs_stats['wins']:<15} {hc_stats['wins']:<15}")
-    print(f"{'Win Rate (%)':<30} {dfs_stats['win_rate']:<15.2f} {hc_stats['win_rate']:<15.2f}")
-    print(f"{'Avg Attempts (when won)':<30} {dfs_stats['avg_attempts']:<15.2f} {hc_stats['avg_attempts']:<15.2f}")
-    print(f"{'Avg Nodes Visited':<30} {dfs_stats['avg_nodes_visited']:<15.1f} {hc_stats['avg_nodes_visited']:<15.1f}")
-    print(f"{'Avg Time/Game (s)':<30} {dfs_stats['avg_time_per_game']:<15.4f} {hc_stats['avg_time_per_game']:<15.4f}")
-    print(f"{'Total Time (s)':<30} {dfs_stats['total_time']:<15.2f} {hc_stats['total_time']:<15.2f}")
     
-    print(f"\n{'Attempts Distribution (DFS)':}")
-    for attempt in sorted([k for k in dfs_stats['attempts_distribution'].keys() if k != 'failed']):
-        count = dfs_stats['attempts_distribution'][attempt]
-        print(f"  {attempt} attempts: {count} games ({count/dfs_stats['total_games']*100:.1f}%)")
-    if 'failed' in dfs_stats['attempts_distribution']:
-        count = dfs_stats['attempts_distribution']['failed']
-        print(f"  Failed: {count} games ({count/dfs_stats['total_games']*100:.1f}%)")
+    # Sort by peak memory
+    sorted_stats = sorted(all_stats, key=lambda x: x['peak_memory_mb'])
     
-    print(f"\n{'Attempts Distribution (Hill Climbing)':}")
-    for attempt in sorted([k for k in hc_stats['attempts_distribution'].keys() if k != 'failed']):
-        count = hc_stats['attempts_distribution'][attempt]
-        print(f"  {attempt} attempts: {count} games ({count/hc_stats['total_games']*100:.1f}%)")
-    if 'failed' in hc_stats['attempts_distribution']:
-        count = hc_stats['attempts_distribution']['failed']
-        print(f"  Failed: {count} games ({count/hc_stats['total_games']*100:.1f}%)")
+    print(f"{'Solver':<20} {'Init (MB)':<12} {'Peak (MB)':<12} {'Delta (MB)':<12}")
+    print("-" * 56)
+    
+    for stats in sorted_stats:
+        init_mem = stats['init_memory_mb']
+        peak_mem = stats['peak_memory_mb']
+        delta = peak_mem - init_mem
+        print(f"{stats['solver']:<20} {init_mem:<12.1f} {peak_mem:<12.1f} {delta:<12.1f}")
+
+
+def print_performance_ranking(all_stats):
+    """Print performance rankings."""
+    print(f"\n{'='*60}")
+    print("PERFORMANCE RANKINGS")
+    print(f"{'='*60}")
+    
+    # Rank by win rate
+    print("\nBy Win Rate (highest first):")
+    sorted_by_wins = sorted(all_stats, key=lambda x: x['win_rate'], reverse=True)
+    for i, stats in enumerate(sorted_by_wins, 1):
+        print(f"  {i}. {stats['solver']:<20} {stats['win_rate']:.2f}%")
+    
+    # Rank by avg attempts (lower is better)
+    print("\nBy Avg Attempts (lowest first):")
+    sorted_by_attempts = sorted(all_stats, key=lambda x: x['avg_attempts'])
+    for i, stats in enumerate(sorted_by_attempts, 1):
+        print(f"  {i}. {stats['solver']:<20} {stats['avg_attempts']:.2f}")
+    
+    # Rank by speed (fastest first)
+    print("\nBy Speed (fastest first):")
+    sorted_by_time = sorted(all_stats, key=lambda x: x['avg_time_per_game'])
+    for i, stats in enumerate(sorted_by_time, 1):
+        print(f"  {i}. {stats['solver']:<20} {stats['avg_time_per_game']:.4f}s/game")
+    
+    # Rank by memory (lowest first)
+    print("\nBy Memory (lowest first):")
+    sorted_by_mem = sorted(all_stats, key=lambda x: x['peak_memory_mb'])
+    for i, stats in enumerate(sorted_by_mem, 1):
+        print(f"  {i}. {stats['solver']:<20} {stats['peak_memory_mb']:.1f} MB")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Compare DFS vs Hill Climbing solvers across all possible games.")
-    parser.add_argument("--limit", type=int, default=None, help="Limit number of games to test (for quick testing)")
-    parser.add_argument("--verbose", action="store_true", help="Print detailed game logs")
-    parser.add_argument("--output", type=str, default="solver_comparison.json", help="Output JSON file for detailed results")
-    parser.add_argument("--seed", type=int, default=None, help="Random seed for shuffling test order (optional)")
-    # Single-core only; no worker flags
+    parser = argparse.ArgumentParser(
+        description="Compare Wordle solvers: DFS, KB-HillClimb, Entropy, ProgEntropy"
+    )
+    parser.add_argument("--limit", type=int, default=None, 
+                        help="Limit number of games to test (for quick testing)")
+    parser.add_argument("--verbose", action="store_true", 
+                        help="Print detailed game logs")
+    parser.add_argument("--output", type=str, default="solver_comparison.json", 
+                        help="Output JSON file for detailed results")
+    parser.add_argument("--seed", type=int, default=None, 
+                        help="Random seed for shuffling test order")
+    parser.add_argument("--solvers", type=str, default=None,
+                        help="Comma-separated list of solvers to test (dfs,kb,entropy,prog)")
     args = parser.parse_args()
     
     # Load all possible secret words
@@ -225,64 +331,61 @@ def main():
         secret_words = secret_words[:args.limit]
         print(f"Limited to {len(secret_words)} games")
     
-    # Run benchmarks
-    quiet = not args.verbose
-    dfs_stats = run_solver_benchmark(DFSSolver, "DFS", secret_words, verbose=args.verbose, quiet=quiet)
-   # hc_stats = run_solver_benchmark(HillClimbingSolver, "Hill Climbing", secret_words, verbose=args.verbose, quiet=quiet)
-    # Include Entropy solver (single-core only)
-   # ent_stats = run_solver_benchmark(EntropySolver, "Entropy", secret_words, verbose=args.verbose, quiet=quiet)
+    # Determine which solvers to run
+    solvers_to_run = SOLVERS
+    if args.solvers:
+        solver_map = {
+            'dfs': ("DFS", DFSSolver),
+            'kb': ("KB-HillClimb", KnowledgeBasedHillClimbingSolver),
+            'entropy': ("Entropy", EntropySolver),
+            'prog': ("ProgEntropy", ProgressiveEntropySolver),
+        }
+        requested = [s.strip().lower() for s in args.solvers.split(',')]
+        solvers_to_run = [solver_map[s] for s in requested if s in solver_map]
     
-
-    """ #NOTE: HARD CODE, NEED TO CHANGE IN CLASS OF PROG_ENTROPY """ 
-    sampling_parameter = 100
-
-
-    prog_ent_stats = run_solver_benchmark(ProgressiveEntropySolver, "Progressive Entropy", secret_words, verbose=args.verbose, quiet=quiet)
-
-    # Print summary
-    print_summary(dfs_stats, prog_ent_stats)
-    print("\nProgressive Entropy Solver Summary")
-    print("-"*60)
-    print(f"Sampling Parameter:                    {sampling_parameter}")
-    print(f"Total Games                    {prog_ent_stats['total_games']}")
-    print(f"Wins                           {prog_ent_stats['wins']}")
-    print(f"Win Rate (%)                   {prog_ent_stats['win_rate']:.2f}")
-    print(f"Avg Attempts (when won)        {prog_ent_stats['avg_attempts']:.2f}")
-    print(f"Avg Nodes Visited              {prog_ent_stats['avg_nodes_visited']:.1f}")
-    print(f"Avg Time/Game (s)              {prog_ent_stats['avg_time_per_game']:.4f}")
-    print(f"Total Time (s)                 {prog_ent_stats['total_time']:.2f}")
-    # Print average consistency sizes by attempt index
-    if 'avg_consistency_by_attempt' in prog_ent_stats:
-        print("\nConsistency Size (avg by attempt)")
-        for attempt_idx in sorted(prog_ent_stats['avg_consistency_by_attempt'].keys()):
-            avg_sz = prog_ent_stats['avg_consistency_by_attempt'][attempt_idx]
-            print(f"  Attempt {attempt_idx}: {avg_sz:.1f} candidates on average")
-    # No workers in single-thread mode
-    # Print attempts distribution for Entropy solver
-    print("\nAttempts Distribution (Entropy)")
-    for attempt in sorted([k for k in prog_ent_stats['attempts_distribution'].keys() if k != 'failed']):
-        count = prog_ent_stats['attempts_distribution'][attempt]
-        print(f"  {attempt} attempts: {count} games ({count/prog_ent_stats['total_games']*100:.1f}%)")
-    if 'failed' in prog_ent_stats['attempts_distribution']:
-        count = prog_ent_stats['attempts_distribution']['failed']
-        print(f"  Failed: {count} games ({count/prog_ent_stats['total_games']*100:.1f}%)")
+    print(f"\nSolvers to compare: {[s[0] for s in solvers_to_run]}")
+    
+    # Run benchmarks for all solvers
+    all_stats = []
+    quiet = not args.verbose
+    
+    for solver_name, solver_class in solvers_to_run:
+        stats = run_solver_benchmark(
+            solver_class, solver_name, secret_words, 
+            verbose=args.verbose, quiet=quiet
+        )
+        all_stats.append(stats)
+    
+    # Print summaries
+    print_summary(all_stats)
+    print_memory_comparison(all_stats)
+    print_performance_ranking(all_stats)
     
     # Save detailed results
     output_data = {
-        'dfs': dfs_stats,
-        'progressive entropy': prog_ent_stats,
-        'comparison': {
+        'config': {
             'total_games': len(secret_words),
-            'dfs_win_rate': dfs_stats['win_rate'],
-            'progressive_entropy_win_rate': prog_ent_stats['win_rate'],
-            'dfs_faster_than_prog_entropy': dfs_stats['total_time'] < prog_ent_stats['total_time']
+            'solvers': [s['solver'] for s in all_stats],
+        },
+        'results': {s['solver']: s for s in all_stats},
+        'rankings': {
+            'by_win_rate': [s['solver'] for s in sorted(all_stats, key=lambda x: x['win_rate'], reverse=True)],
+            'by_avg_attempts': [s['solver'] for s in sorted(all_stats, key=lambda x: x['avg_attempts'])],
+            'by_speed': [s['solver'] for s in sorted(all_stats, key=lambda x: x['avg_time_per_game'])],
+            'by_memory': [s['solver'] for s in sorted(all_stats, key=lambda x: x['peak_memory_mb'])],
         }
     }
+    
+    # Remove detailed game-by-game results to keep file size manageable
+    for solver_stats in output_data['results'].values():
+        solver_stats.pop('results', None)
     
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(output_data, f, indent=2)
     
-    print(f"\nDetailed results saved to: {args.output}")
+    print(f"\n{'='*60}")
+    print(f"Detailed results saved to: {args.output}")
+    print(f"{'='*60}")
 
 
 if __name__ == "__main__":
