@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initVisualization();
     addPhysicalKeyboardSupport();
     loadThemePreference();
-    
+
     // Automatically load game on app entry
     initializeGame();
 });
@@ -67,30 +67,30 @@ function showLoading() {
             clearInterval(messageInterval);
             messageInterval = null;
         }
-        
+
         // Hide result component
         hideResult();
-        
+
         // Reset any previous Done state
         resetLoading();
-        
+
         algorithmLoading.style.display = 'block';
-        
+
         // Start cycling through messages
         const messageElement = document.getElementById('loadingMessage');
         let currentIndex = 0;
-        
+
         if (messageElement) {
             messageElement.textContent = loadingMessages[currentIndex];
         }
-        
+
         messageInterval = setInterval(() => {
             currentIndex = (currentIndex + 1) % loadingMessages.length;
             if (messageElement) {
                 messageElement.textContent = loadingMessages[currentIndex];
             }
         }, 1500);
-        
+
         console.log('Loading started with interval:', messageInterval); // Debug log
     }
 }
@@ -98,13 +98,13 @@ function showLoading() {
 function hideLoading() {
     if (algorithmLoading) {
         algorithmLoading.style.display = 'none';
-        
+
         // Clear message cycling
         if (messageInterval) {
             clearInterval(messageInterval);
             messageInterval = null;
         }
-        
+
         // Reset to first message
         const messageElement = document.getElementById('loadingMessage');
         if (messageElement) {
@@ -116,13 +116,13 @@ function hideLoading() {
 function showResult(message, details, type = 'success') {
     // Hide loading component
     hideLoading();
-    
+
     // Show result component
     const resultPanel = document.getElementById('algorithmResult');
     const resultIcon = document.getElementById('resultIcon');
     const resultMessage = document.getElementById('resultMessage');
     const resultDetails = document.getElementById('resultDetails');
-    
+
     if (resultPanel && resultIcon && resultMessage && resultDetails) {
         // Set icon and message based on type
         const icons = {
@@ -131,24 +131,24 @@ function showResult(message, details, type = 'success') {
             warning: '⚠️',
             stopped: '⏹️'
         };
-        
+
         const classes = {
             success: 'result-success',
-            error: 'result-error', 
+            error: 'result-error',
             warning: 'result-warning',
             stopped: 'result-success'
         };
-        
+
         resultIcon.textContent = icons[type] || icons.success;
         resultMessage.textContent = message;
         resultDetails.textContent = details;
-        
+
         // Apply styling
         resultMessage.className = `result-message ${classes[type]}`;
-        
+
         // Show the result panel
         resultPanel.style.display = 'block';
-        
+
         console.log('Result shown:', message, details, type);
     }
 }
@@ -163,21 +163,21 @@ function hideResult() {
 function showPaused() {
     // Hide result component
     hideResult();
-    
+
     // Show loading component with pause state
     const resultPanel = document.getElementById('algorithmResult');
     const resultIcon = document.getElementById('resultIcon');
     const resultMessage = document.getElementById('resultMessage');
     const resultDetails = document.getElementById('resultDetails');
-    
+
     if (resultPanel && resultIcon && resultMessage && resultDetails) {
         resultIcon.textContent = '⏸️';
         resultMessage.textContent = 'Paused';
         resultDetails.textContent = 'Game is paused - click Resume to continue';
-        
+
         // Apply neutral styling
         resultMessage.className = 'result-message result-success';
-        
+
         // Show the result panel
         resultPanel.style.display = 'block';
     }
@@ -187,7 +187,7 @@ function resetLoading() {
     if (algorithmLoading) {
         const spinner = algorithmLoading.querySelector('.loading-spinner');
         const messageElement = document.getElementById('loadingMessage');
-        
+
         // Reset all elements to default state
         if (spinner) spinner.style.display = 'block';
         if (messageElement) {
@@ -235,26 +235,26 @@ function setupEventListeners() {
             toggleAlgorithmDropdown();
         }
     });
-    
+
     // Dropdown item selection
     algorithmDropdown.addEventListener('click', (e) => {
         if (e.target.classList.contains('dropdown-item')) {
             selectAlgorithm(e.target.dataset.solver);
         }
     });
-    
+
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
         if (!algorithmSelector.contains(e.target)) {
             closeAlgorithmDropdown();
         }
     });
-    
+
     pauseBtn.addEventListener('click', togglePause);
     nextBtn.addEventListener('click', showNextStep);
     restartBtn.addEventListener('click', restartGame);
     themeBtn.addEventListener('click', toggleTheme);
-    
+
     // Menu button removed - algorithm selection now via dropdown panel
 
     // Algorithm selection
@@ -276,7 +276,7 @@ function setupEventListeners() {
             toggleMode(false);
         }
     });
-    
+
     document.getElementById('autoModeBtn').addEventListener('click', () => {
         if (gameState.solver) {
             toggleMode(true);
@@ -322,9 +322,9 @@ function setupEventListeners() {
 function addPhysicalKeyboardSupport() {
     document.addEventListener('keydown', (e) => {
         if (gameState.gameOver || !gameState.gameStarted || gameState.autoPlay) return;
-        
+
         const key = e.key.toUpperCase();
-        
+
         if (/^[A-Z]$/.test(key)) {
             handleKeyPress(key);
         } else if (key === 'BACKSPACE') {
@@ -356,34 +356,34 @@ function closeAlgorithmDropdown() {
 
 function selectAlgorithm(solverType) {
     closeAlgorithmDropdown();
-    
+
     // Hide any existing loading or result components
     hideLoading();
     hideResult();
-    
+
     // Reset pause button state
     pauseBtn.classList.remove('active');
-    
+
     // Update algorithm display
     const algorithmName = document.getElementById('algorithmName');
     const algorithmMode = document.getElementById('algorithmMode');
-    
+
     const solverNames = {
         'dfs': 'DFS Solver',
-        'entropy': 'Entropy Solver', 
+        'entropy': 'Entropy Solver',
         'kbhillclimbing': 'KB Hill Climbing',
         'progressive': 'Progressive Entropy'
     };
-    
+
     algorithmName.textContent = solverNames[solverType] || solverType;
     algorithmMode.textContent = 'Ready to start';
-    
+
     // Show mode toggle
     const modeToggle = document.getElementById('modeToggle');
     modeToggle.style.display = 'flex';
-    
+
     showToast(`Selected ${solverNames[solverType]}`, 'success');
-    
+
     // Start the game automatically
     startGame(solverType, false); // Start in hint mode
 }
@@ -402,14 +402,14 @@ async function startGameInternal(solver, autoPlay, suppressToast = false) {
         }
         return;
     }
-    
+
     // Hide all UI components when starting a new game
     hideLoading();
     hideResult();
-    
+
     // Clear AI choice highlights
     clearAIChoiceHighlight();
-    
+
     try {
         const response = await fetch(`${API_BASE}/api/start`, {
             method: 'POST',
@@ -418,7 +418,7 @@ async function startGameInternal(solver, autoPlay, suppressToast = false) {
         });
 
         const data = await response.json();
-        
+
         if (data.success) {
             gameState.solver = solver;
             gameState.autoPlay = autoPlay;
@@ -434,7 +434,7 @@ async function startGameInternal(solver, autoPlay, suppressToast = false) {
             resetKeyboard();
             updateStats(data);
             updateAlgorithmDisplay(solver, autoPlay);
-            
+
             if (!suppressToast) {
                 showToast(`Game started with ${solver.toUpperCase()} solver`, 'success');
             }
@@ -442,7 +442,7 @@ async function startGameInternal(solver, autoPlay, suppressToast = false) {
             pauseBtn.disabled = false;
             nextBtn.disabled = autoPlay;
             restartBtn.disabled = false;
-            
+
             // Show/hide suggestions based on mode
             const suggestionsPanel = document.getElementById('suggestionsPanel');
             if (autoPlay) {
@@ -450,7 +450,7 @@ async function startGameInternal(solver, autoPlay, suppressToast = false) {
             } else {
                 suggestionsPanel.style.display = 'block';
             }
-            
+
             // Update mode toggle states
             const hintBtn = document.getElementById('hintModeBtn');
             const autoBtn = document.getElementById('autoModeBtn');
@@ -500,18 +500,18 @@ async function makeAIMove() {
         });
 
         const data = await response.json();
-        
+
         if (data.success) {
             const guess = data.guess;
-            
+
             updateBoard(guess, data.feedback);
             updateKeyboard(guess, data.feedback);
-            
+
             gameState.currentRow++;
-            gameState.attempts.push({ 
-                guess: guess, 
+            gameState.attempts.push({
+                guess: guess,
                 feedback: data.feedback,
-                remainingWords: data.remaining_words 
+                remainingWords: data.remaining_words
             });
 
             updateStats(data);
@@ -554,16 +554,16 @@ async function showNextStep() {
     try {
         // Load/refresh suggestions first
         await loadSuggestions();
-        
+
         // Get the top suggestion (AI's best choice) and highlight it
         const suggestionItems = document.querySelectorAll('.suggestion-item');
         if (suggestionItems.length > 0) {
             const topSuggestion = suggestionItems[0];
             const aiChoice = topSuggestion.dataset.word;
-            
+
             // Highlight the AI's choice
             highlightAIChoice(aiChoice);
-            
+
             showToast(`AI recommends: ${aiChoice.toUpperCase()}`, 'info');
         } else {
             showToast('No suggestions available', 'warning');
@@ -577,12 +577,12 @@ async function showNextStep() {
 function highlightAIChoice(aiWord) {
     // Find and highlight the AI's chosen word in suggestions
     const suggestionItems = document.querySelectorAll('.suggestion-item');
-    
+
     // Remove any existing highlights
     suggestionItems.forEach(item => {
         item.classList.remove('ai-choice');
     });
-    
+
     // Find and highlight the AI's choice
     suggestionItems.forEach(item => {
         const word = item.dataset.word;
@@ -611,16 +611,16 @@ async function makePlayerGuess(word) {
         });
 
         const data = await response.json();
-        
+
         if (data.success) {
             currentInput = ''; // Clear only on success
             updateBoard(word, data.feedback);
             updateKeyboard(word, data.feedback);
             gameState.currentRow++;
-            gameState.attempts.push({ 
-                guess: word, 
+            gameState.attempts.push({
+                guess: word,
                 feedback: data.feedback,
-                remainingWords: data.remaining_words 
+                remainingWords: data.remaining_words
             });
 
             updateStats(data);
@@ -686,17 +686,17 @@ function updateCurrentRowDisplay() {
     if (gameState.currentRow < rows.length) {
         const currentRowElement = rows[gameState.currentRow];
         const tiles = currentRowElement.querySelectorAll('.tile');
-        
+
         // First, clear all tiles in current row that aren't locked
         tiles.forEach(tile => {
-            if (!tile.classList.contains('green') && 
-                !tile.classList.contains('yellow') && 
+            if (!tile.classList.contains('green') &&
+                !tile.classList.contains('yellow') &&
                 !tile.classList.contains('gray')) {
                 tile.textContent = '';
                 tile.classList.remove('filled');
             }
         });
-        
+
         // Then update with current input
         for (let i = 0; i < currentInput.length && i < 5; i++) {
             tiles[i].textContent = currentInput[i];
@@ -728,13 +728,13 @@ async function loadSuggestions() {
     try {
         // Show loading indicator in suggestions panel
         showSuggestionsLoading();
-        
+
         const response = await fetch(`${API_BASE}/api/suggestions`);
         const data = await response.json();
-        
+
         // Hide loading indicator
         hideSuggestionsLoading();
-        
+
         if (data.success) {
             displaySuggestions(data.suggestions);
         }
@@ -760,7 +760,7 @@ function showSuggestionsLoading() {
         clearInterval(suggestionsMessageInterval);
         suggestionsMessageInterval = null;
     }
-    
+
     suggestionsList.innerHTML = `
         <div class="suggestions-loading">
             <div class="suggestions-spinner">
@@ -776,11 +776,11 @@ function showSuggestionsLoading() {
             </div>
         </div>
     `;
-    
+
     // Cycle through loading messages
     const messageElement = document.getElementById('suggestionsLoadingMessage');
     let currentIndex = 0;
-    
+
     suggestionsMessageInterval = setInterval(() => {
         currentIndex = (currentIndex + 1) % suggestionsLoadingMessages.length;
         if (messageElement) {
@@ -805,20 +805,20 @@ let isInitializing = false;
 
 async function initializeGame() {
     isInitializing = true;
-    
+
     // Show initial loading overlay
     showInitialLoading();
-    
+
     try {
         // Start game with default solver (entropy)
         const defaultSolver = 'entropy';
         await startGameInternal(defaultSolver, false, true); // Start in hint mode by default, suppress toast
-        
+
         // Update algorithm display to show selected solver
         const algorithmName = document.getElementById('algorithmName');
         const algorithmMode = document.getElementById('algorithmMode');
         const modeToggle = document.getElementById('modeToggle');
-        
+
         if (algorithmName) {
             algorithmName.textContent = 'Entropy Solver';
         }
@@ -828,13 +828,13 @@ async function initializeGame() {
         if (modeToggle) {
             modeToggle.style.display = 'flex';
         }
-        
+
         // Set default mode button as active
         const hintBtn = document.getElementById('hintModeBtn');
         if (hintBtn) {
             hintBtn.classList.add('active');
         }
-        
+
     } catch (error) {
         console.error('Error initializing game:', error);
         showToast('Failed to initialize game', 'error');
@@ -865,9 +865,9 @@ function showInitialLoading() {
         `;
         document.body.appendChild(overlay);
     }
-    
+
     overlay.style.display = 'flex';
-    
+
     // Cycle through initialization messages
     const messageElement = document.getElementById('initialLoadingMessage');
     const initMessages = [
@@ -877,12 +877,12 @@ function showInitialLoading() {
         "Preparing suggestions...",
         "Almost ready..."
     ];
-    
+
     let currentIndex = 0;
     if (messageElement) {
         messageElement.textContent = initMessages[currentIndex];
     }
-    
+
     const messageInterval = setInterval(() => {
         currentIndex = (currentIndex + 1) % initMessages.length;
         if (messageElement) {
@@ -893,7 +893,7 @@ function showInitialLoading() {
             }, 200);
         }
     }, 1000);
-    
+
     // Store interval ID for cleanup
     overlay.dataset.intervalId = messageInterval;
 }
@@ -906,11 +906,11 @@ function hideInitialLoading() {
         if (intervalId) {
             clearInterval(parseInt(intervalId));
         }
-        
+
         // Fade out animation
         overlay.style.opacity = '0';
         overlay.style.transition = 'opacity 0.5s ease-out';
-        
+
         setTimeout(() => {
             overlay.style.display = 'none';
         }, 500);
@@ -922,7 +922,7 @@ function displaySuggestions(suggestions) {
         suggestionsList.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 1rem;">No suggestions available</p>';
         return;
     }
-    
+
     // Clear any existing AI choice highlights
     clearAIChoiceHighlight();
 
@@ -939,13 +939,13 @@ function displaySuggestions(suggestions) {
             word = sugg;
             score = null;
         }
-        
+
         // Format score for display
         let scoreText = '';
         if (score !== null && score !== undefined && score !== 0) {
             scoreText = score.toFixed(1);
         }
-        
+
         return `
             <div class="suggestion-item" data-word="${word}">
                 <span class="suggestion-rank">${idx + 1}</span>
@@ -966,7 +966,7 @@ function updateBoard(guess, feedback) {
         tile.textContent = letter.toUpperCase();
         tile.classList.remove('filled');
         tile.classList.add('flip');
-        
+
         setTimeout(() => {
             if (feedback[i] === 2) {
                 tile.classList.add('green');
@@ -985,7 +985,7 @@ function updateKeyboard(guess, feedback) {
         if (!key) return;
 
         const state = feedback[i];
-        
+
         // Only update if new state is better (green > yellow > gray)
         if (state === 2) {
             key.classList.remove('yellow', 'gray');
@@ -1027,7 +1027,6 @@ function resetKeyboard() {
 function updateStats(data) {
     document.getElementById('attemptsCount').textContent = data.attempts || gameState.currentRow;
     document.getElementById('remainingWords').textContent = data.remaining_words ?? '-';
-    document.getElementById('nodesVisited').textContent = data.nodes_visited || 0;
     document.getElementById('currentSolver').textContent = gameState.solver ? gameState.solver.toUpperCase() : 'None';
 }
 
@@ -1083,13 +1082,13 @@ async function restartGame() {
     // Hide all UI components when restarting
     hideLoading();
     hideResult();
-    
+
     // Reset pause button state
     pauseBtn.classList.remove('active');
-    
+
     // Clear AI choice highlights
     clearAIChoiceHighlight();
-    
+
     // Clear input and display
     currentInput = '';
     clearCurrentRowDisplay();
@@ -1100,15 +1099,15 @@ async function restartGame() {
 function toggleTheme() {
     const body = document.body;
     const isWordleTheme = body.classList.toggle('wordle-theme');
-    
+
     // Save preference
     localStorage.setItem('wordleTheme', isWordleTheme ? 'light' : 'dark');
-    
+
     // Update button text
     themeBtn.textContent = isWordleTheme ? '🌙 Dark' : '🎨 Theme';
-    
+
     showToast(isWordleTheme ? 'Switched to Original Wordle theme' : 'Switched to Dark theme', 'success');
-    
+
     // Redraw visualizations with new colors
     if (gameState.gameStarted) {
         renderVisualization();
@@ -1127,10 +1126,10 @@ function toggleMode(autoPlay) {
     // Hide loading and result when switching modes
     hideLoading();
     hideResult();
-    
+
     // Reset pause button state
     pauseBtn.classList.remove('active');
-    
+
     if (!gameState.gameStarted) {
         startGame(gameState.solver, autoPlay);
     } else {
@@ -1139,7 +1138,7 @@ function toggleMode(autoPlay) {
         clearCurrentRowDisplay();
         startGame(gameState.solver, autoPlay);
     }
-    
+
     // Show/hide suggestions based on mode
     const suggestionsPanel = document.getElementById('suggestionsPanel');
     if (autoPlay) {
@@ -1147,11 +1146,11 @@ function toggleMode(autoPlay) {
     } else {
         suggestionsPanel.style.display = 'block';
     }
-    
+
     // Update toggle button states
     const hintBtn = document.getElementById('hintModeBtn');
     const autoBtn = document.getElementById('autoModeBtn');
-    
+
     if (autoPlay) {
         hintBtn.classList.remove('active');
         autoBtn.classList.add('active');
@@ -1172,12 +1171,12 @@ function clearLog() {
 function updateAlgorithmDisplay(solver, autoPlay) {
     const algoName = document.getElementById('algorithmName');
     const algoMode = document.getElementById('algorithmMode');
-    
+
     const solverNames = {
         'dfs': 'DFS Solver',
         'hillclimbing': 'Hill Climbing'
     };
-    
+
     algoName.textContent = solverNames[solver] || solver.toUpperCase();
     algoMode.textContent = autoPlay ? 'Auto Play Mode' : 'Hint Mode - Click suggestions or type';
 }
@@ -1186,14 +1185,14 @@ function updateAlgorithmDisplay(solver, autoPlay) {
 function initVisualization() {
     vizCanvas = document.getElementById('vizCanvas');
     chartCanvas = document.getElementById('chartCanvas');
-    
+
     if (!vizCanvas || !chartCanvas) {
         console.error('Canvas elements not found!');
         return;
     }
 
     vizCtx = vizCanvas.getContext('2d');
-    
+
     // Set up viz tab switching
     document.querySelectorAll('.viz-tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -1204,7 +1203,7 @@ function initVisualization() {
             renderVisualization();
         });
     });
-    
+
     console.log('Visualization initialized');
     renderVisualization();
 }
@@ -1218,7 +1217,7 @@ function renderVisualization() {
 
     // Clear both canvases
     vizCtx.clearRect(0, 0, vizCanvas.width, vizCanvas.height);
-    
+
     // Show/hide appropriate canvas based on viz type
     switch (currentVizTab) {
         case 'entropy':
@@ -1250,7 +1249,7 @@ function drawDecisionTree() {
     // Use Chart.js for better visualization
     vizCanvas.style.display = 'none';
     chartCanvas.style.display = 'block';
-    
+
     // Destroy existing chart
     if (activeChart) {
         activeChart.destroy();
@@ -1258,157 +1257,157 @@ function drawDecisionTree() {
     }
 
     const ctx = chartCanvas.getContext('2d');
-    
+
     // Prepare data
     const labels = gameState.attempts.map((a, i) => `${i + 1}. ${a.guess.toUpperCase()}`);
     const greenCounts = gameState.attempts.map(a => (a.feedback || []).filter(f => f === 2).length);
     const yellowCounts = gameState.attempts.map(a => (a.feedback || []).filter(f => f === 1).length);
     const remainingWords = gameState.attempts.map(a => a.remainingWords || 0);
-    
+
     console.log('Drawing decision tree chart with', gameState.attempts.length, 'attempts');
     console.log('Chart data:', { labels, greenCounts, yellowCounts, remainingWords });
 
     try {
         activeChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'Correct Letters (✓)',
-                    data: greenCounts,
-                    backgroundColor: 'rgba(166, 227, 161, 0.8)',
-                    borderColor: '#a6e3a1',
-                    borderWidth: 2,
-                    yAxisID: 'y',
-                },
-                {
-                    label: 'Misplaced Letters (~)',
-                    data: yellowCounts,
-                    backgroundColor: 'rgba(249, 226, 175, 0.8)',
-                    borderColor: '#f9e2af',
-                    borderWidth: 2,
-                    yAxisID: 'y',
-                },
-                {
-                    label: 'Remaining Words',
-                    data: remainingWords,
-                    type: 'line',
-                    backgroundColor: 'rgba(137, 180, 250, 0.2)',
-                    borderColor: '#89b4fa',
-                    borderWidth: 3,
-                    fill: true,
-                    yAxisID: 'y1',
-                    tension: 0.4,
-                    pointRadius: 6,
-                    pointHoverRadius: 8,
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false,
-            },
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Guess Progress & Feedback Analysis',
-                    color: '#89b4fa',
-                    font: {
-                        size: 18,
-                        weight: 'bold'
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Correct Letters (✓)',
+                        data: greenCounts,
+                        backgroundColor: 'rgba(166, 227, 161, 0.8)',
+                        borderColor: '#a6e3a1',
+                        borderWidth: 2,
+                        yAxisID: 'y',
                     },
-                    padding: 20
-                },
-                legend: {
-                    display: true,
-                    position: 'top',
-                    labels: {
-                        color: '#cdd6f4',
-                        font: {
-                            size: 12
-                        },
-                        padding: 15,
-                        usePointStyle: true,
+                    {
+                        label: 'Misplaced Letters (~)',
+                        data: yellowCounts,
+                        backgroundColor: 'rgba(249, 226, 175, 0.8)',
+                        borderColor: '#f9e2af',
+                        borderWidth: 2,
+                        yAxisID: 'y',
+                    },
+                    {
+                        label: 'Remaining Words',
+                        data: remainingWords,
+                        type: 'line',
+                        backgroundColor: 'rgba(137, 180, 250, 0.2)',
+                        borderColor: '#89b4fa',
+                        borderWidth: 3,
+                        fill: true,
+                        yAxisID: 'y1',
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
                     }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(30, 30, 46, 0.95)',
-                    titleColor: '#89b4fa',
-                    bodyColor: '#cdd6f4',
-                    borderColor: '#89b4fa',
-                    borderWidth: 1,
-                    padding: 12,
-                    displayColors: true,
-                    callbacks: {
-                        title: function(context) {
-                            return 'Attempt ' + context[0].label;
-                        }
-                    }
-                }
+                ]
             },
-            scales: {
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    min: 0,
-                    max: 5,
-                    ticks: {
-                        stepSize: 1,
-                        color: '#a6adc8'
-                    },
-                    grid: {
-                        color: 'rgba(88, 91, 112, 0.3)'
-                    },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
                     title: {
                         display: true,
-                        text: 'Letter Feedback Count',
+                        text: 'Guess Progress & Feedback Analysis',
                         color: '#89b4fa',
                         font: {
-                            size: 13,
+                            size: 18,
                             weight: 'bold'
-                        }
-                    }
-                },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    ticks: {
-                        color: '#a6adc8'
-                    },
-                    grid: {
-                        drawOnChartArea: false,
-                    },
-                    title: {
-                        display: true,
-                        text: 'Remaining Words',
-                        color: '#89b4fa',
-                        font: {
-                            size: 13,
-                            weight: 'bold'
-                        }
-                    }
-                },
-                x: {
-                    ticks: {
-                        color: '#a6adc8',
-                        font: {
-                            size: 11
                         },
-                        maxRotation: 45,
-                        minRotation: 45
+                        padding: 20
                     },
-                    grid: {
-                        color: 'rgba(88, 91, 112, 0.2)'
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            color: '#cdd6f4',
+                            font: {
+                                size: 12
+                            },
+                            padding: 15,
+                            usePointStyle: true,
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(30, 30, 46, 0.95)',
+                        titleColor: '#89b4fa',
+                        bodyColor: '#cdd6f4',
+                        borderColor: '#89b4fa',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: true,
+                        callbacks: {
+                            title: function (context) {
+                                return 'Attempt ' + context[0].label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        min: 0,
+                        max: 5,
+                        ticks: {
+                            stepSize: 1,
+                            color: '#a6adc8'
+                        },
+                        grid: {
+                            color: 'rgba(88, 91, 112, 0.3)'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Letter Feedback Count',
+                            color: '#89b4fa',
+                            font: {
+                                size: 13,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        ticks: {
+                            color: '#a6adc8'
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                        title: {
+                            display: true,
+                            text: 'Remaining Words',
+                            color: '#89b4fa',
+                            font: {
+                                size: 13,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#a6adc8',
+                            font: {
+                                size: 11
+                            },
+                            maxRotation: 45,
+                            minRotation: 45
+                        },
+                        grid: {
+                            color: 'rgba(88, 91, 112, 0.2)'
+                        }
                     }
                 }
             }
-        }
         });
         console.log('Chart created successfully!');
     } catch (error) {
@@ -1434,7 +1433,7 @@ function drawEntropyChartJS() {
     }
 
     const ctx = chartCanvas.getContext('2d');
-    
+
     const labels = ['Start', ...gameState.attempts.map(a => a.guess.toUpperCase())];
     const data = [12953, ...gameState.attempts.map(a => a.remainingWords || 0)];
 
@@ -1510,20 +1509,20 @@ function drawSearchSpace() {
     // Use Chart.js for better quality
     vizCanvas.style.display = 'none';
     chartCanvas.style.display = 'block';
-    
+
     // Destroy existing chart
     if (activeChart) {
         activeChart.destroy();
     }
 
     const ctx = chartCanvas.getContext('2d');
-    
+
     const labels = gameState.attempts.map((a, i) => `#${i + 1}: ${a.guess.toUpperCase()}`);
     const data = gameState.attempts.map(a => a.remainingWords || 0);
-    
+
     // Calculate reduction percentage for each step
     const reductionData = gameState.attempts.map((a, i) => {
-        const prev = i === 0 ? 12953 : gameState.attempts[i-1].remainingWords;
+        const prev = i === 0 ? 12953 : gameState.attempts[i - 1].remainingWords;
         const reduction = ((prev - (a.remainingWords || 0)) / prev * 100).toFixed(1);
         return parseFloat(reduction);
     });
@@ -1607,7 +1606,7 @@ function drawSearchSpace() {
                     ticks: {
                         color: '#a6adc8',
                         font: { size: 11 },
-                        callback: function(value) {
+                        callback: function (value) {
                             return value + '%';
                         }
                     },

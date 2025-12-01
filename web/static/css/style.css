@@ -178,8 +178,13 @@ body.wordle-theme .dropdown-item:hover {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes slideIn {
@@ -187,6 +192,7 @@ body.wordle-theme .dropdown-item:hover {
         opacity: 0;
         transform: translateY(-20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -244,7 +250,7 @@ body.wordle-theme .dropdown-item:hover {
     right: 0;
     bottom: 0;
     background: radial-gradient(circle at 20% 20%, rgba(137, 180, 250, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(166, 227, 161, 0.05) 0%, transparent 50%);
+        radial-gradient(circle at 80% 80%, rgba(166, 227, 161, 0.05) 0%, transparent 50%);
     pointer-events: none;
     z-index: 0;
 }
@@ -298,6 +304,7 @@ body.wordle-theme .dropdown-item:hover {
         opacity: 0;
         transform: translateY(-10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -317,8 +324,15 @@ body.wordle-theme .dropdown-item:hover {
 }
 
 @keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
 }
 
 .dots-container {
@@ -332,14 +346,26 @@ body.wordle-theme .dropdown-item:hover {
     animation: bounce 1.4s ease-in-out infinite both;
 }
 
-.dot:nth-child(1) { animation-delay: -0.32s; }
-.dot:nth-child(2) { animation-delay: -0.16s; }
-.dot:nth-child(3) { animation-delay: 0s; }
+.dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+.dot:nth-child(3) {
+    animation-delay: 0s;
+}
 
 @keyframes bounce {
-    0%, 80%, 100% {
+
+    0%,
+    80%,
+    100% {
         transform: translateY(0);
     }
+
     40% {
         transform: translateY(-10px);
     }
@@ -374,7 +400,7 @@ body {
 
 header {
     background-color: var(--bg-secondary);
-    padding: 1rem 2rem;
+    padding: 0.8rem 1.5rem;
     border-bottom: 2px solid var(--border-color);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
@@ -388,7 +414,7 @@ header {
 }
 
 h1 {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     font-weight: 700;
     letter-spacing: 0.05em;
 }
@@ -399,12 +425,12 @@ h1 {
 }
 
 .btn {
-    padding: 0.7rem 1.5rem;
+    padding: 0.6rem 1.2rem;
     border: none;
-    border-radius: 10px;
+    border-radius: 8px;
     background: linear-gradient(135deg, var(--button-bg), var(--button-hover));
     color: var(--text-primary);
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -449,13 +475,13 @@ h1 {
 
 main {
     flex: 1;
-    max-width: 1800px;
+    max-width: 1400px;
     width: 100%;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 1.5rem;
     display: grid;
-    grid-template-columns: 550px 500px 1fr;
-    gap: 2rem;
+    grid-template-columns: 400px 420px 1fr;
+    gap: 1.5rem;
 }
 
 .left-panel {
@@ -488,15 +514,15 @@ main {
 }
 
 .tile {
-    width: 62px;
-    height: 62px;
+    width: 50px;
+    height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: var(--tile-empty);
     border: 2px solid var(--border-color);
     border-radius: 4px;
-    font-size: 2rem;
+    font-size: 1.6rem;
     font-weight: 700;
     text-transform: uppercase;
     transition: all 0.3s ease;
@@ -508,22 +534,60 @@ main {
 }
 
 @keyframes pop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-    20%, 40%, 60%, 80% { transform: translateX(5px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+        transform: translateX(-5px);
+    }
+
+    20%,
+    40%,
+    60%,
+    80% {
+        transform: translateX(5px);
+    }
 }
 
 @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    25% { transform: translateY(-10px); }
-    50% { transform: translateY(-5px); }
-    75% { transform: translateY(-2px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    25% {
+        transform: translateY(-10px);
+    }
+
+    50% {
+        transform: translateY(-5px);
+    }
+
+    75% {
+        transform: translateY(-2px);
+    }
 }
 
 .row.bounce {
@@ -549,9 +613,17 @@ main {
 }
 
 @keyframes flip {
-    0% { transform: rotateX(0); }
-    50% { transform: rotateX(90deg); }
-    100% { transform: rotateX(0); }
+    0% {
+        transform: rotateX(0);
+    }
+
+    50% {
+        transform: rotateX(90deg);
+    }
+
+    100% {
+        transform: rotateX(0);
+    }
 }
 
 .keyboard {
@@ -616,8 +688,8 @@ main {
 .panel {
     background: rgba(49, 50, 68, 0.7);
     backdrop-filter: blur(10px);
-    border-radius: 16px;
-    padding: 1.5rem;
+    border-radius: 12px;
+    padding: 1rem;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(88, 91, 112, 0.3);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -631,12 +703,12 @@ main {
 }
 
 .panel h2 {
-    font-size: 1.3rem;
-    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    margin-bottom: 0.8rem;
     color: var(--accent);
     font-weight: 700;
     border-bottom: 2px solid var(--border-color);
-    padding-bottom: 0.8rem;
+    padding-bottom: 0.6rem;
 }
 
 .suggestions-list {
@@ -686,6 +758,7 @@ main {
         opacity: 0;
         transform: translateY(30px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -721,8 +794,13 @@ main {
 }
 
 @keyframes spinLarge {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .initial-loading-text {
@@ -793,8 +871,15 @@ body.wordle-theme #initialLoadingMessage {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .suggestions-spinner {
@@ -816,15 +901,27 @@ body.wordle-theme #initialLoadingMessage {
     animation: dotPulse 1.4s ease-in-out infinite both;
 }
 
-.spinner-dots .dot:nth-child(1) { animation-delay: -0.32s; }
-.spinner-dots .dot:nth-child(2) { animation-delay: -0.16s; }
-.spinner-dots .dot:nth-child(3) { animation-delay: 0s; }
+.spinner-dots .dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.spinner-dots .dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+.spinner-dots .dot:nth-child(3) {
+    animation-delay: 0s;
+}
 
 @keyframes dotPulse {
-    0%, 80%, 100% {
+
+    0%,
+    80%,
+    100% {
         transform: scale(0.6);
         opacity: 0.5;
     }
+
     40% {
         transform: scale(1);
         opacity: 1;
@@ -846,8 +943,15 @@ body.wordle-theme #initialLoadingMessage {
 }
 
 @keyframes brainPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.15); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.15);
+    }
 }
 
 #suggestionsLoadingMessage {
@@ -870,15 +974,15 @@ body.wordle-theme .spinner-dots .dot {
 }
 
 .suggestion-item {
-    padding: 1.2rem 1.5rem;
+    padding: 0.8rem 1rem;
     background: linear-gradient(135deg, rgba(69, 71, 90, 0.5), rgba(88, 91, 112, 0.3));
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 1.5rem;
+    gap: 1rem;
     border: 1px solid transparent;
     position: relative;
     overflow: visible;
@@ -965,7 +1069,7 @@ body.wordle-theme .spinner-dots .dot {
 
 .suggestion-word {
     font-weight: 600;
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
@@ -1004,16 +1108,16 @@ body.wordle-theme .spinner-dots .dot {
 }
 
 .stat-label {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.4rem;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 
 .stat-value {
-    font-size: 2rem;
+    font-size: 1.6rem;
     font-weight: 800;
     color: var(--accent);
     text-shadow: 0 2px 4px rgba(137, 180, 250, 0.3);
@@ -1097,7 +1201,7 @@ body.wordle-theme .spinner-dots .dot {
 }
 
 .algo-icon {
-    font-size: 3rem;
+    font-size: 2rem;
     flex-shrink: 0;
     animation: pulse 2s ease-in-out infinite;
 }
@@ -1107,10 +1211,10 @@ body.wordle-theme .spinner-dots .dot {
 }
 
 .algo-name {
-    font-size: 2rem;
+    font-size: 1.4rem;
     font-weight: 700;
     color: var(--accent);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -1122,8 +1226,15 @@ body.wordle-theme .spinner-dots .dot {
 }
 
 @keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
 }
 
 .mode-toggle {
@@ -1163,6 +1274,7 @@ body.wordle-theme .spinner-dots .dot {
         opacity: 0;
         transform: translateX(-20px);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -1233,6 +1345,7 @@ body.wordle-theme .spinner-dots .dot {
         opacity: 0;
         transform: translateX(100%);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -1343,7 +1456,7 @@ body.wordle-theme .spinner-dots .dot {
     main {
         grid-template-columns: 1fr;
     }
-    
+
     .center-panel {
         order: -1;
     }
@@ -1393,13 +1506,17 @@ body.wordle-theme .spinner-dots .dot {
     background-color: var(--bg-secondary);
     border-radius: 8px;
     padding: 1rem;
+    width: 100%;
 }
 
-#vizCanvas {
+#vizCanvas,
+#chartCanvas {
     max-width: 100%;
     height: auto;
     background-color: var(--bg-primary);
     border-radius: 4px;
+    display: block;
+    margin: 0 auto;
 }
 
 /* Responsive design */
