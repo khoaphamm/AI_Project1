@@ -1273,22 +1273,8 @@ function drawDecisionTree() {
             data: {
                 labels: labels,
                 datasets: [
-                    {
-                        label: 'Correct Letters (✓)',
-                        data: greenCounts,
-                        backgroundColor: 'rgba(166, 227, 161, 0.8)',
-                        borderColor: '#a6e3a1',
-                        borderWidth: 2,
-                        yAxisID: 'y',
-                    },
-                    {
-                        label: 'Misplaced Letters (~)',
-                        data: yellowCounts,
-                        backgroundColor: 'rgba(249, 226, 175, 0.8)',
-                        borderColor: '#f9e2af',
-                        borderWidth: 2,
-                        yAxisID: 'y',
-                    },
+                    // Put Remaining Words first so its legend entry appears above the others,
+                    // but set a higher `order` so the line is drawn on top of the bars.
                     {
                         label: 'Remaining Words',
                         data: remainingWords,
@@ -1301,6 +1287,25 @@ function drawDecisionTree() {
                         tension: 0.4,
                         pointRadius: 6,
                         pointHoverRadius: 8,
+                        order: 3
+                    },
+                    {
+                        label: 'Correct Letters (✓)',
+                        data: greenCounts,
+                        backgroundColor: 'rgba(166, 227, 161, 0.8)',
+                        borderColor: '#a6e3a1',
+                        borderWidth: 2,
+                        yAxisID: 'y',
+                        order: 1
+                    },
+                    {
+                        label: 'Misplaced Letters (~)',
+                        data: yellowCounts,
+                        backgroundColor: 'rgba(249, 226, 175, 0.8)',
+                        borderColor: '#f9e2af',
+                        borderWidth: 2,
+                        yAxisID: 'y',
+                        order: 1
                     }
                 ]
             },
