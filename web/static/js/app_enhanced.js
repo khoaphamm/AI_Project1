@@ -55,7 +55,6 @@ let messageInterval = null;
 const loadingMessages = [
     "Analyzing possibilities...",
     "Calculating entropy...",
-    "Searching decision tree...",
     "Finding optimal move...",
     "Processing feedback...",
     "Narrowing word list..."

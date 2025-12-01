@@ -379,6 +379,26 @@ class KnowledgeBasedHillClimbingSolver(BaseSolver):
         
         print(f"KB-Hill Climbing built word: {guess_word} (traversed {nodes_visited} nodes)")
         return guess_word
+    def get_all_suggestions(self):
+        """
+        Get suggestions for the Knowledge-Based Hill Climbing solver.
+        Recalculates the dynamic heuristic from `self.currently_consistent_words`
+        and scores each word accordingly. Returns a list of tuples
+        (word, score) sorted by score descending (top 100).
+        """
+        # If no pruning has occurred yet, default to empty or allowed words
+        if not self.currently_consistent_words:
+            return []
+
+        dynamic_matrix = self._calculate_dynamic_heuristic(self.currently_consistent_words)
+
+        word_scores = []
+        for word in self.currently_consistent_words:
+            score = sum(dynamic_matrix[i].get(char, 0) for i, char in enumerate(word))
+            word_scores.append((word, score))
+
+        word_scores.sort(key=lambda x: x[1], reverse=True)
+        return word_scores[:100]
 
 class ProgressiveEntropySolver(BaseSolver):
     """
