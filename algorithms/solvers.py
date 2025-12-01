@@ -516,7 +516,6 @@ class ProgressiveEntropySolver(BaseSolver):
         self.sample_size = samples_per_node
         self.first_guess = "tares" # 3b1b favorite
         self._turn_entropy_cache = {} # Maps word -> entropy
-        self._candidate_indices = None  # Cached candidate indices for current turn
 
     def reset(self):
         """Reset solver state for a new game."""
