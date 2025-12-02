@@ -22,16 +22,18 @@ from algorithms.solvers import (
     DFSSolver,
     KnowledgeBasedHillClimbingSolver,
     EntropySolver,
-    ProgressiveEntropySolver
+    ProgressiveEntropySolver,
+    HybridProgressiveEntropySolver,
 )
 from data import paths
 
 # Define solvers to compare
 SOLVERS = [
-    ("DFS", DFSSolver),
-    ("KB-HillClimb", KnowledgeBasedHillClimbingSolver),
-    ("Entropy", EntropySolver),
-    ("ProgEntropy", ProgressiveEntropySolver),
+    ("HybridEntropy-10", lambda g, s=10: HybridProgressiveEntropySolver(g, samples_per_node=s)),
+    ("HybridEntropy-30", lambda g, s=30: HybridProgressiveEntropySolver(g, samples_per_node=s)),
+    ("HybridEntropy-50", lambda g, s=50: HybridProgressiveEntropySolver(g, samples_per_node=s)),
+    ("HybridEntropy-80", lambda g, s=80: HybridProgressiveEntropySolver(g, samples_per_node=s)),
+    ("HybridEntropy-100", lambda g, s=100: HybridProgressiveEntropySolver(g, samples_per_node=s)),
 ]
 
 
@@ -339,6 +341,7 @@ def main():
             'kb': ("KB-HillClimb", KnowledgeBasedHillClimbingSolver),
             'entropy': ("Entropy", EntropySolver),
             'prog': ("ProgEntropy", ProgressiveEntropySolver),
+            'hybrid': ("HybridProgEntropy", HybridProgressiveEntropySolver)
         }
         requested = [s.strip().lower() for s in args.solvers.split(',')]
         solvers_to_run = [solver_map[s] for s in requested if s in solver_map]
