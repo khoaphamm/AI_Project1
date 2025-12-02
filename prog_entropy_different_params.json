@@ -1,0 +1,194 @@
+{
+  "config": {
+    "total_games": 2309,
+    "solvers": [
+      "HybridEntropy-10",
+      "HybridEntropy-30",
+      "HybridEntropy-50",
+      "HybridEntropy-80",
+      "HybridEntropy-100"
+    ]
+  },
+  "results": {
+    "HybridEntropy-10": {
+      "solver": "HybridEntropy-10",
+      "total_games": 2309,
+      "wins": 2309,
+      "losses": 0,
+      "win_rate": 100.0,
+      "avg_attempts": 4.326115201385881,
+      "avg_nodes_visited": 0.0,
+      "avg_time_per_game": 0.0949201378934029,
+      "total_time": 219.17059839586727,
+      "init_memory_mb": 169.29195976257324,
+      "peak_memory_mb": 171.08663749694824,
+      "attempts_distribution": {
+        "5": 783,
+        "4": 1150,
+        "3": 260,
+        "6": 108,
+        "2": 2,
+        "7": 6
+      },
+      "avg_consistency_by_attempt": {
+        "1": 12953.0,
+        "2": 283.32698137721957,
+        "3": 16.62115301257044,
+        "4": 2.378602833414753,
+        "5": 1.2240802675585285,
+        "6": 1.0614035087719298,
+        "7": 1.0
+      }
+    },
+    "HybridEntropy-30": {
+      "solver": "HybridEntropy-30",
+      "total_games": 2309,
+      "wins": 2309,
+      "losses": 0,
+      "win_rate": 100.0,
+      "avg_attempts": 4.259419662191425,
+      "avg_nodes_visited": 0.0,
+      "avg_time_per_game": 0.17931057561625355,
+      "total_time": 414.02811909792945,
+      "init_memory_mb": 7.8632049560546875,
+      "peak_memory_mb": 9.636680603027344,
+      "attempts_distribution": {
+        "5": 746,
+        "4": 1206,
+        "3": 287,
+        "6": 65,
+        "7": 4,
+        "2": 1
+      },
+      "avg_consistency_by_attempt": {
+        "1": 12953.0,
+        "2": 283.32698137721957,
+        "3": 14.482235701906413,
+        "4": 2.1256803562592776,
+        "5": 1.143558282208589,
+        "6": 1.0579710144927537,
+        "7": 1.0
+      }
+    },
+    "HybridEntropy-50": {
+      "solver": "HybridEntropy-50",
+      "total_games": 2309,
+      "wins": 2309,
+      "losses": 0,
+      "win_rate": 100.0,
+      "avg_attempts": 4.236899090515375,
+      "avg_nodes_visited": 0.0,
+      "avg_time_per_game": 0.22849353330503083,
+      "total_time": 527.5915684013162,
+      "init_memory_mb": 7.863258361816406,
+      "peak_memory_mb": 9.675521850585938,
+      "attempts_distribution": {
+        "4": 1238,
+        "5": 701,
+        "3": 288,
+        "6": 72,
+        "2": 8,
+        "7": 2
+      },
+      "avg_consistency_by_attempt": {
+        "1": 12953.0,
+        "2": 283.32698137721957,
+        "3": 13.818339852238157,
+        "4": 2.018380526577248,
+        "5": 1.135483870967742,
+        "6": 1.0405405405405406,
+        "7": 1.0
+      }
+    },
+    "HybridEntropy-80": {
+      "solver": "HybridEntropy-80",
+      "total_games": 2309,
+      "wins": 2309,
+      "losses": 0,
+      "win_rate": 100.0,
+      "avg_attempts": 4.209181463837159,
+      "avg_nodes_visited": 0.0,
+      "avg_time_per_game": 0.30830193936830647,
+      "total_time": 711.8691780014196,
+      "init_memory_mb": 7.8631591796875,
+      "peak_memory_mb": 9.622941970825195,
+      "attempts_distribution": {
+        "5": 650,
+        "4": 1321,
+        "6": 55,
+        "3": 274,
+        "2": 6,
+        "7": 3
+      },
+      "avg_consistency_by_attempt": {
+        "1": 12953.0,
+        "2": 283.32698137721957,
+        "3": 13.376465479808944,
+        "4": 1.9398718580581567,
+        "5": 1.1468926553672316,
+        "6": 1.0517241379310345,
+        "7": 1.0
+      }
+    },
+    "HybridEntropy-100": {
+      "solver": "HybridEntropy-100",
+      "total_games": 2309,
+      "wins": 2309,
+      "losses": 0,
+      "win_rate": 100.0,
+      "avg_attempts": 4.206149848419229,
+      "avg_nodes_visited": 0.0,
+      "avg_time_per_game": 0.37274036574345437,
+      "total_time": 860.6575045016361,
+      "init_memory_mb": 7.863212585449219,
+      "peak_memory_mb": 9.612627029418945,
+      "attempts_distribution": {
+        "4": 1284,
+        "5": 668,
+        "3": 296,
+        "6": 54,
+        "2": 5,
+        "7": 2
+      },
+      "avg_consistency_by_attempt": {
+        "1": 12953.0,
+        "2": 283.32698137721957,
+        "3": 13.137586805555555,
+        "4": 1.9800796812749004,
+        "5": 1.106353591160221,
+        "6": 1.0357142857142858,
+        "7": 1.0
+      }
+    }
+  },
+  "rankings": {
+    "by_win_rate": [
+      "HybridEntropy-10",
+      "HybridEntropy-30",
+      "HybridEntropy-50",
+      "HybridEntropy-80",
+      "HybridEntropy-100"
+    ],
+    "by_avg_attempts": [
+      "HybridEntropy-100",
+      "HybridEntropy-80",
+      "HybridEntropy-50",
+      "HybridEntropy-30",
+      "HybridEntropy-10"
+    ],
+    "by_speed": [
+      "HybridEntropy-10",
+      "HybridEntropy-30",
+      "HybridEntropy-50",
+      "HybridEntropy-80",
+      "HybridEntropy-100"
+    ],
+    "by_memory": [
+      "HybridEntropy-100",
+      "HybridEntropy-80",
+      "HybridEntropy-30",
+      "HybridEntropy-50",
+      "HybridEntropy-10"
+    ]
+  }
+}

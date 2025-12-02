@@ -427,15 +427,17 @@ class EntropySolver(BaseEntropySolver):
 
 class ProgressiveEntropySolver(BaseEntropySolver):
     """
-    Progressive Entropy Sampling Solver.
-    Uses Monte Carlo sampling to approximate best entropy moves.
+    Progressive Entropy Sampling Solver (HYBRID behavior).
+    Uses a fixed trie for sampling to ensure exploration of the full word space
+    while calculating entropy against the pruned set of candidates.
     """
     def __init__(self, game, samples_per_node=400):
         super().__init__(game)
         self.sample_size = samples_per_node
         self._turn_entropy_cache = {} # Maps word -> entropy
-
-        print(f"ProgressiveEntropySolver initialized with {samples_per_node} samples per node.")
+        # Fixed trie over the full allowed words for unbiased sampling
+        self.fixed_trie = WordleTrie(list(self.game.allowed_words))
+        print(f"ProgressiveEntropySolver (hybrid) initialized with {samples_per_node} samples per node.")
 
     def reset(self):
         super().reset()
@@ -456,42 +458,43 @@ class ProgressiveEntropySolver(BaseEntropySolver):
         """Randomized DFS with Early Stopping to get k samples efficiently."""
         samples = []
         stack = [start_node]
-        
+
         while stack and len(samples) < k:
             node = stack.pop()
-            
+
             if node.is_word:
                 samples.append(node.word)
                 if len(samples) >= k:
                     break
-            
+
             children = list(node.children.values())
             random.shuffle(children)
-            
+
             for child in children:
                 stack.append(child)
         return samples
 
     def _compute_entropy_turn(self):
         """
-        Greedy entropy construction using Trie traversal.
+        Greedy entropy construction using the FIXED Trie traversal.
         """
         candidates = list(self.currently_consistent_words)
-        self._candidate_indices = None # Reset for fresh turn
-        
+        self._candidate_indices = None
+
         if len(candidates) <= 1:
             if candidates:
                 self.calculate_entropy(candidates[0], candidates)
                 return candidates[0]
             return "error"
 
-        current_node = self.trie.root
+        # Use the Fixed Trie's Root
+        current_node = self.fixed_trie.root
         current_prefix = ""
-        
+
         for _ in range(5):
             best_char = None
             max_avg_entropy = -1.0
-            
+
             possible_chars = list(current_node.children.keys())
             if not possible_chars:
                 break
@@ -499,17 +502,17 @@ class ProgressiveEntropySolver(BaseEntropySolver):
             for char in possible_chars:
                 child_node = current_node.children[char]
                 samples = self._get_random_samples(child_node, self.sample_size)
-                
+
                 if not samples:
                     continue
-                
+
                 total_entropy = sum(self.calculate_entropy(word, candidates) for word in samples)
                 avg_entropy = total_entropy / len(samples)
-                
+
                 if avg_entropy > max_avg_entropy:
                     max_avg_entropy = avg_entropy
                     best_char = char
-            
+
             if best_char:
                 current_prefix += best_char
                 current_node = current_node.children[best_char]
@@ -523,28 +526,31 @@ class ProgressiveEntropySolver(BaseEntropySolver):
     def pick_guess(self, history):
         if not history:
             return self.first_guess
-        
+
         self._turn_entropy_cache = {}
-        self._update_trie(history)
-        
+
+        # No dynamic trie rebuild; just update the set of consistent words
+        self._update_currently_consistent_words(history)
+
         greedy_guess = self._compute_entropy_turn()
         greedy_entropy = self._turn_entropy_cache.get(greedy_guess, 0.0)
-        
+
         best_cached_word = None
         best_cached_entropy = -1.0
-        
+
         for word, ent in self._turn_entropy_cache.items():
             if ent > best_cached_entropy:
                 best_cached_entropy = ent
                 best_cached_word = word
 
         final_guess = greedy_guess
+
         if best_cached_word and best_cached_entropy > greedy_entropy:
-            print(f"ProgressiveEntropy: Switched greedy '{greedy_guess}' ({greedy_entropy:.3f}) "
+            print(f"ProgressiveEntropy (hybrid): Switched greedy '{greedy_guess}' ({greedy_entropy:.3f}) "
                   f"for cached optimum '{best_cached_word}' ({best_cached_entropy:.3f})")
             final_guess = best_cached_word
         else:
-            print(f"ProgressiveEntropy: Stuck with greedy '{greedy_guess}' ({greedy_entropy:.3f})")
+            print(f"ProgressiveEntropy (hybrid): Stuck with greedy '{greedy_guess}' ({greedy_entropy:.3f})")
 
         self.search_stats.append({
             'method': 'ProgressiveEntropy',
@@ -552,7 +558,7 @@ class ProgressiveEntropySolver(BaseEntropySolver):
             'cache_size': len(self._turn_entropy_cache),
             'switched': final_guess != greedy_guess
         })
-        
+
         return final_guess
 
     def get_all_suggestions(self):
@@ -575,102 +581,3 @@ class ProgressiveEntropySolver(BaseEntropySolver):
             print(f"  {word}: {entropy:.4f} bits")
         
         return word_entropy_list[:100]
-
-
-class HybridProgressiveEntropySolver(ProgressiveEntropySolver):
-    """
-    Hybrid Progressive Entropy Sampling Solver.
-    Uses a fixed trie for sampling to ensure exploration of the full word space
-    while calculating entropy against the pruned set of candidates.
-    """
-    def __init__(self, game, samples_per_node=100):
-        super().__init__(game, samples_per_node)
-        self.fixed_trie = WordleTrie(list(self.game.allowed_words))
-        print(f"Hybrid version triggered with {samples_per_node} samples per node.")
-
-    def _compute_entropy_turn(self):
-        """
-        Overrides traversal to use the Fixed Trie instead of the pruned Trie.
-        """
-        candidates = list(self.currently_consistent_words)
-        self._candidate_indices = None
-        
-        if len(candidates) <= 1:
-            if candidates:
-                self.calculate_entropy(candidates[0], candidates)
-                return candidates[0]
-            return "error"
-
-        # Use the Fixed Trie's Root
-        current_node = self.fixed_trie.root
-        current_prefix = ""
-        
-        for _ in range(5):
-            best_char = None
-            max_avg_entropy = -1.0
-            
-            possible_chars = list(current_node.children.keys())
-            if not possible_chars:
-                break
-
-            for char in possible_chars:
-                child_node = current_node.children[char]
-                samples = self._get_random_samples(child_node, self.sample_size)
-                
-                if not samples:
-                    continue
-                
-                total_entropy = sum(self.calculate_entropy(word, candidates) for word in samples)
-                avg_entropy = total_entropy / len(samples)
-                
-                if avg_entropy > max_avg_entropy:
-                    max_avg_entropy = avg_entropy
-                    best_char = char
-            
-            if best_char:
-                current_prefix += best_char
-                current_node = current_node.children[best_char]
-            else:
-                break
-
-        greedy_guess = current_prefix
-        self.calculate_entropy(greedy_guess, candidates)
-        return greedy_guess
-
-    def pick_guess(self, history):
-        if not history:
-            return self.first_guess
-            
-        self._turn_entropy_cache = {}
-
-        # no need dynamic trie (similar to entropy solver)
-        self._update_currently_consistent_words(history)
-        
-        greedy_guess = self._compute_entropy_turn()
-        greedy_entropy = self._turn_entropy_cache.get(greedy_guess, 0.0)
-        
-        best_cached_word = None
-        best_cached_entropy = -1.0
-        
-        for word, ent in self._turn_entropy_cache.items():
-            if ent > best_cached_entropy:
-                best_cached_entropy = ent
-                best_cached_word = word
-
-        final_guess = greedy_guess
-        
-        if best_cached_word and best_cached_entropy > greedy_entropy:
-            print(f"HybridProgressiveEntropy: Switched greedy '{greedy_guess}' ({greedy_entropy:.3f}) "
-                  f"for cached optimum '{best_cached_word}' ({best_cached_entropy:.3f})")
-            final_guess = best_cached_word
-        else:
-            print(f"HybridProgressiveEntropy: Stuck with greedy '{greedy_guess}' ({greedy_entropy:.3f})")
-
-        self.search_stats.append({
-            'method': 'HybridProgressiveEntropy',
-            'word_found': final_guess,
-            'cache_size': len(self._turn_entropy_cache),
-            'switched': final_guess != greedy_guess
-        })
-        
-        return final_guess

@@ -22,18 +22,18 @@ from algorithms.solvers import (
     DFSSolver,
     KnowledgeBasedHillClimbingSolver,
     EntropySolver,
-    ProgressiveEntropySolver,
-    HybridProgressiveEntropySolver,
+    ProgressiveEntropySolver
 )
 from data import paths
 
 # Define solvers to compare
 SOLVERS = [
-    ("HybridEntropy-10", lambda g, s=10: HybridProgressiveEntropySolver(g, samples_per_node=s)),
-    ("HybridEntropy-30", lambda g, s=30: HybridProgressiveEntropySolver(g, samples_per_node=s)),
-    ("HybridEntropy-50", lambda g, s=50: HybridProgressiveEntropySolver(g, samples_per_node=s)),
-    ("HybridEntropy-80", lambda g, s=80: HybridProgressiveEntropySolver(g, samples_per_node=s)),
-    ("HybridEntropy-100", lambda g, s=100: HybridProgressiveEntropySolver(g, samples_per_node=s)),
+   # ("Entropy-10", lambda g, s=10: ProgressiveEntropySolver(g, samples_per_node=s)),
+    # ("Entropy-30", lambda g, s=30: ProgressiveEntropySolver(g, samples_per_node=s)),
+    # ("Entropy-50", lambda g, s=50: ProgressiveEntropySolver(g, samples_per_node=s)),
+    # ("Entropy-80", lambda g, s=80: ProgressiveEntropySolver(g, samples_per_node=s)),
+    # ("Entropy-100", lambda g, s=100: ProgressiveEntropySolver(g, samples_per_node=s)),
+    ("DFS", DFSSolver)
 ]
 
 
@@ -340,8 +340,7 @@ def main():
             'dfs': ("DFS", DFSSolver),
             'kb': ("KB-HillClimb", KnowledgeBasedHillClimbingSolver),
             'entropy': ("Entropy", EntropySolver),
-            'prog': ("ProgEntropy", ProgressiveEntropySolver),
-            'hybrid': ("HybridProgEntropy", HybridProgressiveEntropySolver)
+            'prog': ("ProgEntropy", ProgressiveEntropySolver)
         }
         requested = [s.strip().lower() for s in args.solvers.split(',')]
         solvers_to_run = [solver_map[s] for s in requested if s in solver_map]
