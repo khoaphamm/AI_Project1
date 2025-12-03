@@ -13,10 +13,10 @@ python -m game.game_console
 **Watch AI solve with BFS/DFS on Trie:**
 
 ## Note
-Before running any AI algorithms, we need to check if the pattern matrix JSON file exists: data/wordle_matrix.js.
+Before running any AI algorithms, we need to check if the pattern matrix npy file exists: data/full_pattern_matrix.
 If it has not existed, then run:
 ```bash
-python generate_matrix.py
+python data/generate_full_matrix.py
 ```
 
 Then, run the following command to let AI play:
