@@ -1,6 +1,6 @@
 # Wordle Game - Trie-Based Search
 
-A Python implementation of Wordle with AI solvers using Trie data structure and search algorithms (BFS/DFS).
+A Python implementation of Wordle with AI solvers using Trie data structure and search algorithms.
 
 ## How to Run
 
