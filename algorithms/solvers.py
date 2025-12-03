@@ -227,16 +227,44 @@ class KnowledgeBasedHillClimbingSolver(BaseSolver):
     def get_all_suggestions(self):
         if not self.currently_consistent_words:
             return []
-
+        # Build dynamic heuristic from remaining valid words
         dynamic_matrix = self._calculate_dynamic_heuristic(self.currently_consistent_words)
 
-        word_scores = []
-        for word in self.currently_consistent_words:
-            score = sum(dynamic_matrix[i].get(char, 0) for i, char in enumerate(word))
-            word_scores.append((word, score))
+        # Try to construct a single best word by traversing the trie
+        # using the same per-position greedy choice as `pick_guess`.
+        # If the solver's trie is not available, build a temporary one.
+        trie_root = None
+        if self.trie is not None:
+            trie_root = self.trie.root
+        else:
+            # Temporary trie for suggestion construction
+            tmp_trie = WordleTrie(list(self.currently_consistent_words))
+            trie_root = tmp_trie.root
 
-        word_scores.sort(key=lambda x: x[1], reverse=True)
-        return word_scores[:100]
+        current_node = trie_root
+        guess_word = ""
+
+        for i in range(5):
+            possible_next_chars = list(current_node.children.keys())
+
+            if not possible_next_chars:
+                # Fallback: return any remaining consistent word
+                fallback = list(self.currently_consistent_words)[0] if self.currently_consistent_words else "error"
+                if fallback == "error":
+                    return []
+                fallback_score = sum(dynamic_matrix[j].get(ch, 0) for j, ch in enumerate(fallback))
+                return [(fallback, float(fallback_score))]
+
+            best_char = max(
+                possible_next_chars,
+                key=lambda char: dynamic_matrix[i].get(char, 0)
+            )
+
+            guess_word += best_char
+            current_node = current_node.children[best_char]
+
+        total_score = sum(dynamic_matrix[i].get(char, 0) for i, char in enumerate(guess_word))
+        return [(guess_word, float(total_score))]
 
 
 class BaseEntropySolver(BaseSolver):
