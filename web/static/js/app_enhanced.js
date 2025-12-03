@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
 let messageInterval = null;
 const loadingMessages = [
     "Analyzing possibilities...",
-    "Calculating entropy...",
+    // "Calculating entropy...",
     "Finding optimal move...",
     "Processing feedback...",
     "Narrowing word list..."
