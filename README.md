@@ -50,9 +50,10 @@ ROOT ('')
 
 ## Search Algorithms
 
-- **BFS (Breadth-First Search)**: Explores level by level (all depth-1, then depth-2, etc.)
 - **DFS (Depth-First Search)**: Explores one branch completely before backtracking
-- **Recursive DFS**: Same as DFS but implemented recursively
+- **Knowledge Based Hill Climbing**: Use character frequency heuristic to improve quality of the guess
+- **Full Entropy Solver**: Making guess based on the Entropy of each word's feedback distribution
+- **Progressive Entropy Sampling**: Stochastic, speed-optimized version of the previous Entropy Solver
 
 ## Rules
 
