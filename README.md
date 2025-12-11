@@ -1,6 +1,6 @@
-# Wordle Game - Trie-Based Search
+# Wordle Game 
 
-A Python implementation of Wordle with AI solvers using Trie data structure and search algorithms (BFS/DFS).
+A Python implementation of Wordle with AI solvers using Trie data structure, search algorithm, heuristics, and information theory.
 
 ## How to Run
 
@@ -53,7 +53,7 @@ ROOT ('')
 - **DFS (Depth-First Search)**: Explores one branch completely before backtracking
 - **Knowledge Based Hill Climbing**: Use character frequency heuristic to improve quality of the guess
 - **Full Entropy Solver**: Making guess based on the Entropy of each word's feedback distribution
-- **Progressive Entropy Sampling**: Stochastic, speed-optimized version of the previous Entropy Solver
+- **Progressive Entropy Sampling**: Stochastic, speed-optimized version of the previous Entropy Solver using Monte-Carlo sampling
 
 ## Rules
 
